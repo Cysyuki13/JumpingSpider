@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Jumping Spider Pet - Hierarchical Jointed Legs</title>
+    <title>3D Jumping Spider Pet - Collapsible Sidebar</title>
     <style>
         body {
             margin: 0;
@@ -11,30 +12,73 @@
             background-color: #1a1a1a;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-        #ui-container {
+
+        #sidebar {
             position: absolute;
             top: 20px;
-            width: 100%;
-            text-align: center;
+            right: 0;
+            width: 70px;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(8px);
+            border-radius: 12px 0 0 12px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            box-shadow: -4px 8px 32px rgba(0, 0, 0, 0.4);
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 10;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        #sidebar.collapsed {
+            transform: translateX(calc(100% - 15px));
+        }
+
+        #sidebar.collapsed:hover {
+            transform: translateX(calc(100% - 20px));
+            cursor: pointer;
+        }
+
+        .tool-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 10px;
+            border: none;
+            background: rgba(255, 255, 255, 0.1);
             color: #fff;
-            pointer-events: none;
-            text-shadow: 0px 2px 4px rgba(0, 0, 0, 0.8);
-        }
-        h1 {
-            margin: 0 0 5px 0;
             font-size: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
         }
-        p {
-            margin: 0;
-            font-size: 14px;
-            color: #ccc;
+
+        .tool-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: scale(1.05);
+        }
+
+        .tool-btn.active {
+            background: #ff3366;
+            box-shadow: 0 0 12px rgba(255, 51, 102, 0.6);
+        }
+
+        #btn-toggle {
+            height: 25px;
+            font-size: 16px;
         }
     </style>
 </head>
+
 <body>
-    <div id="ui-container">
-        <h1>Jumping Spider Terrarium</h1>
-        <p>Left Click to rotate | Scroll to zoom | The spider can jump on the ball!</p>
+    <div id="sidebar">
+        <button id="btn-toggle" class="tool-btn" title="Collapse Menu">▶</button>
+        <button id="btn-finger" class="tool-btn" title="Finger Tool">👆</button>
+        <button id="btn-grab" class="tool-btn" title="Grab Tool">✊</button>
     </div>
 
     <script type="importmap">
@@ -49,6 +93,82 @@
     <script type="module">
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // ===== 0. Web Audio API Setup for Sound Effects =====
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function playSpiderKickSound() {
+            initAudio();
+            if (!audioCtx) return;
+
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(220, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(60, audioCtx.currentTime + 0.15);
+
+            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.15);
+        }
+
+        function playBounceSound(intensity = 1.0) {
+            initAudio();
+            if (!audioCtx) return;
+
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+
+            osc.type = 'sine';
+            const baseFreq = 120 * Math.min(Math.max(intensity, 0.2), 2.0);
+            osc.frequency.setValueAtTime(baseFreq, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.1);
+
+            gain.gain.setValueAtTime(0.2 * Math.min(intensity, 1.0), audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.1);
+        }
+
+        function playClickSound() {
+            initAudio();
+            if (!audioCtx) return;
+
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + 0.05);
+
+            gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.05);
+        }
 
         // ===== 1. Scene Setup =====
         const scene = new THREE.Scene();
@@ -90,7 +210,8 @@
             opacity: 0.15,
             roughness: 0.1,
             metalness: 0.1,
-            side: THREE.BackSide
+            side: THREE.BackSide,
+            depthWrite: false
         });
         const glassCube = new THREE.Mesh(glassGeometry, glassMaterial);
         glassCube.position.y = boxSize / 2;
@@ -102,261 +223,252 @@
         boxEdges.position.y = boxSize / 2;
         scene.add(boxEdges);
 
-        // Floor
-        const floorGeo = new THREE.PlaneGeometry(boxSize, boxSize);
-        const floorMat = new THREE.MeshStandardMaterial({ color: 0x3d2817 });
+        function getTerrainHeight(x, z) {
+            const edgeDistanceX = (boxSize / 2) - Math.abs(x);
+            const edgeDistanceZ = (boxSize / 2) - Math.abs(z);
+            const edgeFactor = Math.min(1.0, Math.max(0, Math.min(edgeDistanceX, edgeDistanceZ) / 2.0));
+
+            return (Math.sin(x * 0.35) * Math.cos(z * 0.35) * 0.6 +
+                    Math.sin(x * 0.8) * Math.sin(z * 0.7) * 0.25 +
+                    Math.cos(x * 1.5 + z * 1.5) * 0.1) * edgeFactor;
+        }
+
+        function getTerrainNormal(x, z) {
+            const eps = 0.1;
+            const hL = getTerrainHeight(x - eps, z);
+            const hR = getTerrainHeight(x + eps, z);
+            const hD = getTerrainHeight(x, z - eps);
+            const hU = getTerrainHeight(x, z + eps);
+
+            const normal = new THREE.Vector3(hL - hR, 2.0 * eps, hD - hU);
+            normal.normalize();
+            return normal;
+        }
+
+        function createSoilTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = '#2c1e12';
+            ctx.fillRect(0, 0, 512, 512);
+
+            for (let i = 0; i < 40000; i++) {
+                const x = Math.random() * 512;
+                const y = Math.random() * 512;
+                const radius = Math.random() * 1.5;
+
+                const shade = Math.random();
+                if (shade < 0.6) {
+                    ctx.fillStyle = 'rgba(40, 25, 12, 0.4)';
+                } else if (shade < 0.9) {
+                    ctx.fillStyle = 'rgba(75, 52, 32, 0.4)';
+                } else {
+                    ctx.fillStyle = 'rgba(105, 82, 55, 0.25)';
+                }
+
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.set(4, 4);
+            return texture;
+        }
+
+        const floorGeo = new THREE.PlaneGeometry(boxSize, boxSize, 48, 48);
+        const posAttribute = floorGeo.attributes.position;
+
+        for (let i = 0; i < posAttribute.count; i++) {
+            const vx = posAttribute.getX(i);
+            const vy = posAttribute.getY(i);
+            posAttribute.setZ(i, getTerrainHeight(vx, vy));
+        }
+        floorGeo.computeVertexNormals();
+
+        const floorMat = new THREE.MeshStandardMaterial({ 
+            map: createSoilTexture(),
+            roughness: 0.9,
+            metalness: 0.05
+        });
         const floor = new THREE.Mesh(floorGeo, floorMat);
         floor.rotation.x = -Math.PI / 2;
         floor.position.y = 0.02;
         floor.receiveShadow = true;
         scene.add(floor);
 
+        const waterLevel = -0.25; 
+        const waterGeo = new THREE.PlaneGeometry(boxSize - 1, boxSize - 1);
+        const waterMat = new THREE.MeshStandardMaterial({
+            color: 0x3399ff,
+            transparent: true,
+            opacity: 0.6,
+            roughness: 0.1,
+            metalness: 0.8
+        });
+        const waterLayer = new THREE.Mesh(waterGeo, waterMat);
+        waterLayer.rotation.x = -Math.PI / 2;
+        waterLayer.position.y = waterLevel + 0.04;
+        scene.add(waterLayer);
+
+        const activeRipples = [];
+        const rippleGeo = new THREE.RingGeometry(0.05, 0.12, 16);
+        const rippleMatTemplate = new THREE.MeshBasicMaterial({
+            color: 0x88ccff,
+            transparent: true,
+            opacity: 0.8,
+            side: THREE.DoubleSide
+        });
+
+        function triggerSplash(pos) {
+            if (getTerrainHeight(pos.x, pos.z) < waterLevel) {
+                const rippleMesh = new THREE.Mesh(rippleGeo, rippleMatTemplate.clone());
+                rippleMesh.rotation.x = -Math.PI / 2;
+                rippleMesh.position.set(pos.x, waterLevel + 0.06, pos.z);
+                scene.add(rippleMesh);
+                activeRipples.push({ mesh: rippleMesh, life: 1.0 });
+            }
+        }
+
         // ===== 4. Toy Ball =====
         const ballRadius = 1;
         const ballGeo = new THREE.SphereGeometry(ballRadius, 16, 16);
         const ballMat = new THREE.MeshStandardMaterial({ color: 0xff3366, roughness: 0.4 });
         const ball = new THREE.Mesh(ballGeo, ballMat);
-        ball.position.set(5, ballRadius, -5);
+        ball.position.set(5, ballRadius + 2, -5);
         ball.castShadow = true;
         scene.add(ball);
 
         const ballVelocity = new THREE.Vector3(0, 0, 0);
         const gravity = 25;
-        const bounceFactor = 0.7;
-        const friction = 0.98;
+        const bounceFactor = 0.65;
+        const friction = 0.97;
 
-        // ===== 5. ENHANCED JUMPING SPIDER MODEL =====
+        let isHoldingBall = false;
+        let chargeTime = 0;
+        const ballOriginalPos = new THREE.Vector3();
+        let ballWasInWater = false;
+
+        // ===== 5. SPIDER MODEL =====
         const spiderGroup = new THREE.Group();
+        const spiderBodyContainer = new THREE.Group();
+        spiderGroup.add(spiderBodyContainer);
 
-        // Materials
-        const bodyMat = new THREE.MeshStandardMaterial({
-            color: 0x8B7355,
-            roughness: 0.7,
-            metalness: 0.1
-        });
-        const darkBodyMat = new THREE.MeshStandardMaterial({
-            color: 0x5C4033,
-            roughness: 0.8
-        });
-        const eyeMat = new THREE.MeshStandardMaterial({
-            color: 0x1a1a2e,
-            roughness: 0.1,
-            metalness: 0.3
-        });
-        const eyeHighlightMat = new THREE.MeshStandardMaterial({
-            color: 0xffffff,
-            roughness: 0.05,
-            metalness: 0.1
-        });
-        const legMat = new THREE.MeshStandardMaterial({
-            color: 0x7A6B52,
-            roughness: 0.8
-        });
-        const cheliceraeMat = new THREE.MeshStandardMaterial({
-            color: 0x3A2817,
-            roughness: 0.6
-        });
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x8B7355, roughness: 0.7, metalness: 0.1 });
+        const darkBodyMat = new THREE.MeshStandardMaterial({ color: 0x5C4033, roughness: 0.8 });
+        const eyeMat = new THREE.MeshStandardMaterial({ color: 0x1a1a2e, roughness: 0.1, metalness: 0.3 });
+        const eyeHighlightMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.05, metalness: 0.1 });
+        const legMat = new THREE.MeshStandardMaterial({ color: 0x7A6B52, roughness: 0.8 });
+        const cheliceraeMat = new THREE.MeshStandardMaterial({ color: 0x3A2817, roughness: 0.6 });
 
-        // --- Cephalothorax (front body) ---
-        const cephalothorax = new THREE.Mesh(
-            new THREE.BoxGeometry(1.4, 1.0, 1.2),
-            bodyMat
-        );
+        const cephalothorax = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.0, 1.2), bodyMat);
         cephalothorax.position.set(0, 1.0, 0.5);
         cephalothorax.castShadow = true;
-        spiderGroup.add(cephalothorax);
+        spiderBodyContainer.add(cephalothorax);
 
-        const cephTop = new THREE.Mesh(
-            new THREE.BoxGeometry(1.2, 0.2, 1.0),
-            darkBodyMat
-        );
+        const cephTop = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.2, 1.0), darkBodyMat);
         cephTop.position.set(0, 1.5, 0.5);
-        spiderGroup.add(cephTop);
+        spiderBodyContainer.add(cephTop);
 
-        // --- Abdomen (back body) ---
-        const abdomen = new THREE.Mesh(
-            new THREE.BoxGeometry(1.8, 1.2, 1.6),
-            bodyMat
-        );
+        const abdomen = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.2, 1.6), bodyMat);
         abdomen.position.set(0, 1.2, -1.2);
         abdomen.castShadow = true;
-        spiderGroup.add(abdomen);
+        spiderBodyContainer.add(abdomen);
 
-        const abdomenTop = new THREE.Mesh(
-            new THREE.BoxGeometry(1.6, 0.3, 1.3),
-            bodyMat
-        );
+        const abdomenTop = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.3, 1.3), bodyMat);
         abdomenTop.position.set(0, 1.8, -1.2);
-        spiderGroup.add(abdomenTop);
+        spiderBodyContainer.add(abdomenTop);
 
-        // Abdomen colorful pattern
-        const abPattern1 = new THREE.Mesh(
-            new THREE.BoxGeometry(1.6, 0.2, 1.2),
-            new THREE.MeshStandardMaterial({ color: 0xD97C5E, roughness: 0.5 })
-        );
+        const abPattern1 = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.2, 1.2), new THREE.MeshStandardMaterial({ color: 0xD97C5E, roughness: 0.5 }));
         abPattern1.position.set(0, 1.7, -1.3);
-        spiderGroup.add(abPattern1);
+        spiderBodyContainer.add(abPattern1);
 
-        const abPattern2 = new THREE.Mesh(
-            new THREE.BoxGeometry(1.2, 0.2, 0.9),
-            new THREE.MeshStandardMaterial({ color: 0x378B80, roughness: 0.5 })
-        );
+        const abPattern2 = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.2, 0.9), new THREE.MeshStandardMaterial({ color: 0x378B80, roughness: 0.5 }));
         abPattern2.position.set(0, 1.75, -1.0);
-        spiderGroup.add(abPattern2);
+        spiderBodyContainer.add(abPattern2);
 
-        const abSideL = new THREE.Mesh(
-            new THREE.BoxGeometry(0.3, 0.4, 0.8),
-            new THREE.MeshStandardMaterial({ color: 0x2E3B4E, roughness: 0.5 })
-        );
-        abSideL.position.set(-0.75, 1.4, -1.2);
-        spiderGroup.add(abSideL);
-
-        const abSideR = new THREE.Mesh(
-            new THREE.BoxGeometry(0.3, 0.4, 0.8),
-            new THREE.MeshStandardMaterial({ color: 0x2E3B4E, roughness: 0.5 })
-        );
-        abSideR.position.set(0.75, 1.4, -1.2);
-        spiderGroup.add(abSideR);
-
-        // --- Eyes ---
-        const leftAME = new THREE.Mesh(
-            new THREE.SphereGeometry(0.22, 12, 12),
-            eyeMat
-        );
+        const leftAME = new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 12), eyeMat);
         leftAME.position.set(-0.32, 1.15, 1.32);
         leftAME.scale.set(1, 1.1, 0.8);
-        spiderGroup.add(leftAME);
+        spiderBodyContainer.add(leftAME);
 
-        const rightAME = new THREE.Mesh(
-            new THREE.SphereGeometry(0.22, 12, 12),
-            eyeMat
-        );
+        const rightAME = new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 12), eyeMat);
         rightAME.position.set(0.32, 1.15, 1.32);
         rightAME.scale.set(1, 1.1, 0.8);
-        spiderGroup.add(rightAME);
+        spiderBodyContainer.add(rightAME);
 
-        const lHighlight = new THREE.Mesh(
-            new THREE.SphereGeometry(0.06, 6, 6),
-            eyeHighlightMat
-        );
+        const lHighlight = new THREE.Mesh(new THREE.SphereGeometry(0.06, 6, 6), eyeHighlightMat);
         lHighlight.position.set(-0.24, 1.22, 1.46);
-        spiderGroup.add(lHighlight);
+        spiderBodyContainer.add(lHighlight);
 
-        const rHighlight = new THREE.Mesh(
-            new THREE.SphereGeometry(0.06, 6, 6),
-            eyeHighlightMat
-        );
+        const rHighlight = new THREE.Mesh(new THREE.SphereGeometry(0.06, 6, 6), eyeHighlightMat);
         rHighlight.position.set(0.38, 1.22, 1.46);
-        spiderGroup.add(rHighlight);
+        spiderBodyContainer.add(rHighlight);
 
-        const leftALE = new THREE.Mesh(
-            new THREE.SphereGeometry(0.12, 8, 8),
-            eyeMat
-        );
+        const leftALE = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), eyeMat);
         leftALE.position.set(-0.58, 1.05, 0.95);
-        spiderGroup.add(leftALE);
+        spiderBodyContainer.add(leftALE);
 
-        const rightALE = new THREE.Mesh(
-            new THREE.SphereGeometry(0.12, 8, 8),
-            eyeMat
-        );
+        const rightALE = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), eyeMat);
         rightALE.position.set(0.58, 1.05, 0.95);
-        spiderGroup.add(rightALE);
+        spiderBodyContainer.add(rightALE);
 
-        const leftPME = new THREE.Mesh(
-            new THREE.SphereGeometry(0.08, 6, 6),
-            eyeMat
-        );
+        const leftPME = new THREE.Mesh(new THREE.SphereGeometry(0.08, 6, 6), eyeMat);
         leftPME.position.set(-0.4, 1.45, 0.9);
-        spiderGroup.add(leftPME);
+        spiderBodyContainer.add(leftPME);
 
-        const rightPME = new THREE.Mesh(
-            new THREE.SphereGeometry(0.08, 6, 6),
-            eyeMat
-        );
+        const rightPME = new THREE.Mesh(new THREE.SphereGeometry(0.08, 6, 6), eyeMat);
         rightPME.position.set(0.4, 1.45, 0.9);
-        spiderGroup.add(rightPME);
+        spiderBodyContainer.add(rightPME);
 
-        // --- Chelicerae ---
-        const leftChelicera = new THREE.Mesh(
-            new THREE.BoxGeometry(0.22, 0.45, 0.2),
-            cheliceraeMat
-        );
+        const leftChelicera = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.45, 0.2), cheliceraeMat);
         leftChelicera.position.set(-0.35, 0.55, 1.2);
-        spiderGroup.add(leftChelicera);
+        spiderBodyContainer.add(leftChelicera);
 
-        const rightChelicera = new THREE.Mesh(
-            new THREE.BoxGeometry(0.22, 0.45, 0.2),
-            cheliceraeMat
-        );
+        const rightChelicera = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.45, 0.2), cheliceraeMat);
         rightChelicera.position.set(0.35, 0.55, 1.2);
-        spiderGroup.add(rightChelicera);
+        spiderBodyContainer.add(rightChelicera);
 
-        // --- Pedipalps ---
-        const pedipalpMat = new THREE.MeshStandardMaterial({
-            color: 0x6B5B42,
-            roughness: 0.8
-        });
-        const leftPedipalp = new THREE.Mesh(
-            new THREE.BoxGeometry(0.12, 0.25, 0.1),
-            pedipalpMat
-        );
+        const pedipalpMat = new THREE.MeshStandardMaterial({ color: 0x6B5B42, roughness: 0.8 });
+        const leftPedipalp = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.25, 0.1), pedipalpMat);
         leftPedipalp.position.set(-0.52, 0.65, 1.05);
-        spiderGroup.add(leftPedipalp);
+        spiderBodyContainer.add(leftPedipalp);
 
-        const rightPedipalp = new THREE.Mesh(
-            new THREE.BoxGeometry(0.12, 0.25, 0.1),
-            pedipalpMat
-        );
+        const rightPedipalp = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.25, 0.1), pedipalpMat);
         rightPedipalp.position.set(0.52, 0.65, 1.05);
-        spiderGroup.add(rightPedipalp);
+        spiderBodyContainer.add(rightPedipalp);
 
-        // --- Crest / Head decoration ---
         const crestMat1 = new THREE.MeshStandardMaterial({ color: 0x378B80, roughness: 0.5 });
         const crestMat2 = new THREE.MeshStandardMaterial({ color: 0xD97C5E, roughness: 0.5 });
         const crestMat3 = new THREE.MeshStandardMaterial({ color: 0x2E3B4E, roughness: 0.5 });
 
-        const crestBase = new THREE.Mesh(
-            new THREE.BoxGeometry(0.8, 0.35, 1.0),
-            crestMat2
-        );
+        const crestBase = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.35, 1.0), crestMat2);
         crestBase.position.set(0, 1.85, 0.1);
-        spiderGroup.add(crestBase);
+        spiderBodyContainer.add(crestBase);
 
-        const crestMain = new THREE.Mesh(
-            new THREE.BoxGeometry(1.5, 0.18, 0.8),
-            crestMat1
-        );
+        const crestMain = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.18, 0.8), crestMat1);
         crestMain.position.set(0, 2.05, 0.1);
-        spiderGroup.add(crestMain);
+        spiderBodyContainer.add(crestMain);
 
-        const crestCenter = new THREE.Mesh(
-            new THREE.BoxGeometry(0.8, 0.22, 0.8),
-            crestMat3
-        );
+        const crestCenter = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.22, 0.8), crestMat3);
         crestCenter.position.set(0, 2.08, 0.1);
-        spiderGroup.add(crestCenter);
+        spiderBodyContainer.add(crestCenter);
 
-        const crestWingL = new THREE.Mesh(
-            new THREE.BoxGeometry(0.5, 0.15, 0.6),
-            crestMat1
-        );
+        const crestWingL = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.15, 0.6), crestMat1);
         crestWingL.position.set(-0.9, 1.9, 0.1);
-        spiderGroup.add(crestWingL);
+        spiderBodyContainer.add(crestWingL);
 
-        const crestWingR = new THREE.Mesh(
-            new THREE.BoxGeometry(0.5, 0.15, 0.6),
-            crestMat1
-        );
+        const crestWingR = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.15, 0.6), crestMat1);
         crestWingR.position.set(0.9, 1.9, 0.1);
-        spiderGroup.add(crestWingR);
+        spiderBodyContainer.add(crestWingR);
 
-        const crestFront = new THREE.Mesh(
-            new THREE.BoxGeometry(0.6, 0.15, 0.5),
-            crestMat2
-        );
+        const crestFront = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.15, 0.5), crestMat2);
         crestFront.position.set(0, 1.9, 0.6);
-        spiderGroup.add(crestFront);
+        spiderBodyContainer.add(crestFront);
 
         // --- Hierarchical Jointed Legs ---
         const spiderLegs = [];
@@ -370,40 +482,31 @@
             legRoot.add(coxa);
 
             const femurPivot = new THREE.Group();
-            femurPivot.rotation.x = 0.55; 
-            femurPivot.rotation.z = xSide * 0.2; 
+            femurPivot.rotation.x = 0.55;
+            femurPivot.rotation.z = xSide * 0.2;
             coxa.add(femurPivot);
 
-            const femur = new THREE.Mesh(
-                new THREE.BoxGeometry(0.18, 0.18, 1.4),
-                legMat
-            );
+            const femur = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.18, 1.4), legMat);
             femur.position.z = 0.7;
             femur.castShadow = true;
             femurPivot.add(femur);
 
             const tibiaPivot = new THREE.Group();
             tibiaPivot.position.z = 1.4;
-            tibiaPivot.rotation.x = 0.65; 
+            tibiaPivot.rotation.x = 0.65;
             femurPivot.add(tibiaPivot);
 
-            const tibia = new THREE.Mesh(
-                new THREE.BoxGeometry(0.15, 0.15, 1.0),
-                legMat
-            );
+            const tibia = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.15, 1.0), legMat);
             tibia.position.z = 0.5;
             tibia.castShadow = true;
             tibiaPivot.add(tibia);
 
             const tarsusPivot = new THREE.Group();
             tarsusPivot.position.z = 1.0;
-            tarsusPivot.rotation.x = -0.25; 
+            tarsusPivot.rotation.x = -0.25;
             tibiaPivot.add(tarsusPivot);
 
-            const tarsus = new THREE.Mesh(
-                new THREE.BoxGeometry(0.1, 0.1, 0.4),
-                legMat
-            );
+            const tarsus = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.4), legMat);
             tarsus.position.z = 0.2;
             tarsus.castShadow = true;
             tarsusPivot.add(tarsus);
@@ -418,20 +521,24 @@
                 baseFemurX: 0.55,
                 baseTibiaX: 0.65,
                 index: legIndex,
-                xSide: xSide
+                xSide: xSide,
+                localRestZ: zPos,
+                wasInWater: false
             });
 
             return legRoot;
         }
 
-        spiderGroup.add(createLeg(1, 0.8, 0.6, 0));    // right front
-        spiderGroup.add(createLeg(-1, 0.8, -0.6, 1));  // left front
-        spiderGroup.add(createLeg(1, 0.3, 0.9, 2));    // right mid-front
-        spiderGroup.add(createLeg(-1, 0.3, -0.9, 3));  // left mid-front
-        spiderGroup.add(createLeg(1, -0.3, 1.3, 4));   // right mid-rear
-        spiderGroup.add(createLeg(-1, -0.3, -1.3, 5)); // left mid-rear
-        spiderGroup.add(createLeg(1, -0.9, 1.8, 6));   // right rear
-        spiderGroup.add(createLeg(-1, -0.9, -1.8, 7)); // left rear
+        // Leg index mapping:
+        // 0: Right Front, 1: Left Front, 2 & 3: Middle-Front, 4 & 5: Middle-Back, 6 & 7: Back
+        spiderGroup.add(createLeg(1, 0.8, 0.6, 0));   // Right Front
+        spiderGroup.add(createLeg(-1, 0.8, -0.6, 1)); // Left Front
+        spiderGroup.add(createLeg(1, 0.3, 0.9, 2));
+        spiderGroup.add(createLeg(-1, 0.3, -0.9, 3));
+        spiderGroup.add(createLeg(1, -0.3, 1.3, 4));
+        spiderGroup.add(createLeg(-1, -0.3, -1.3, 5));
+        spiderGroup.add(createLeg(1, -0.9, 1.8, 6));
+        spiderGroup.add(createLeg(-1, -0.9, -1.8, 7));
 
         scene.add(spiderGroup);
 
@@ -443,7 +550,7 @@
         controls.maxDistance = 60;
         controls.minDistance = 10;
 
-        // ===== 7. AI Logic =====
+        // ===== 7. UI & Tool Selection System =====
         let targetPosition = new THREE.Vector3();
         let isJumping = false;
         let jumpProgress = 0;
@@ -451,10 +558,200 @@
         let spiderSpeed = 0.05;
         let targetingBall = false;
 
+        let trackingCursor = false;
+        const cursorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+        const cursorWorldPos = new THREE.Vector3();
+
+        let activeTool = null; 
+        let grabbedObject = null; 
+        let grabPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+        let intersectionPoint = new THREE.Vector3();
+
+        const sidebar = document.getElementById('sidebar');
+        const btnFinger = document.getElementById('btn-finger');
+        const btnGrab = document.getElementById('btn-grab');
+        const btnToggle = document.getElementById('btn-toggle');
+
+        btnToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            playClickSound();
+            sidebar.classList.toggle('collapsed');
+            btnToggle.textContent = sidebar.classList.contains('collapsed') ? '▶' : '◀';
+        });
+
+        sidebar.addEventListener('click', (e) => {
+            if (sidebar.classList.contains('collapsed')) {
+                playClickSound();
+                sidebar.classList.remove('collapsed');
+                btnToggle.textContent = '◀';
+            }
+        });
+
+        btnFinger.addEventListener('click', () => {
+            playClickSound();
+            if (activeTool === 'finger') {
+                activeTool = null;
+                trackingCursor = false;
+                btnFinger.classList.remove('active');
+            } else {
+                activeTool = 'finger';
+                btnFinger.classList.add('active');
+                btnGrab.classList.remove('active');
+            }
+            if (grabbedObject) { grabbedObject = null; controls.enabled = true; }
+        });
+
+        btnGrab.addEventListener('click', () => {
+            playClickSound();
+            if (activeTool === 'grab') {
+                activeTool = null;
+                btnGrab.classList.remove('active');
+            } else {
+                activeTool = 'grab';
+                btnGrab.classList.add('active');
+                btnFinger.classList.remove('active');
+            }
+            if (isHoldingBall) { isHoldingBall = false; controls.enabled = true; }
+            trackingCursor = false;
+        });
+
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+
+        window.addEventListener('pointerdown', (event) => {
+            if (event.button !== 0) return;
+            if (event.clientX > window.innerWidth - 90 && event.clientY < 220) return;
+            if (!activeTool) return;
+
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+
+            const spiderMeshes = [];
+            spiderGroup.traverse(child => { if (child.isMesh) spiderMeshes.push(child); });
+
+            const spiderIntersect = raycaster.intersectObjects(spiderMeshes);
+            const ballIntersect = raycaster.intersectObject(ball);
+
+            if (activeTool === 'finger') {
+                if (spiderIntersect.length > 0) {
+                    playClickSound();
+                    playSpiderKickSound();
+                    
+                    startJumpPos.copy(spiderGroup.position);
+                    jumpProgress = 0;
+                    isJumping = true;
+                    trackingCursor = false;
+                    targetingBall = false;
+
+                    const limit = (boxSize / 2) - 2;
+                    const randomAngle = Math.random() * Math.PI * 2;
+                    const jumpDist = 5 + Math.random() * 4;
+                    
+                    targetPosition.set(
+                        Math.max(-limit, Math.min(limit, spiderGroup.position.x + Math.cos(randomAngle) * jumpDist)),
+                        0,
+                        Math.max(-limit, Math.min(limit, spiderGroup.position.z + Math.sin(randomAngle) * jumpDist))
+                    );
+                } else if (ballIntersect.length > 0) {
+                    playClickSound();
+                    isHoldingBall = true;
+                    chargeTime = 0;
+                    ballOriginalPos.copy(ball.position);
+                    ballVelocity.set(0, 0, 0);
+                    controls.enabled = false;
+                    trackingCursor = false;
+                } else {
+                    playClickSound();
+                    trackingCursor = true;
+                    targetingBall = false;
+                    isJumping = false;
+                }
+            } else if (activeTool === 'grab') {
+                if (spiderIntersect.length > 0) {
+                    grabbedObject = 'spider';
+                    isJumping = false;
+                    controls.enabled = false;
+                } else if (ballIntersect.length > 0) {
+                    grabbedObject = 'ball';
+                    ballVelocity.set(0, 0, 0);
+                    controls.enabled = false;
+                }
+            }
+        });
+
+        window.addEventListener('pointermove', (event) => {
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            if (activeTool === 'grab' && grabbedObject) {
+                raycaster.setFromCamera(mouse, camera);
+                
+                const currentY = grabbedObject === 'spider' ? spiderGroup.position.y : ball.position.y;
+                grabPlane.setFromNormalAndCoplanarPoint(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, currentY, 0));
+                
+                if (raycaster.ray.intersectPlane(grabPlane, intersectionPoint)) {
+                    const limit = (boxSize / 2) - 1.5;
+                    intersectionPoint.x = Math.max(-limit, Math.min(limit, intersectionPoint.x));
+                    intersectionPoint.z = Math.max(-limit, Math.min(limit, intersectionPoint.z));
+
+                    if (grabbedObject === 'spider') {
+                        spiderGroup.position.x = intersectionPoint.x;
+                        spiderGroup.position.z = intersectionPoint.z;
+                        spiderGroup.position.y = Math.max(getTerrainHeight(intersectionPoint.x, intersectionPoint.z) + 3, intersectionPoint.y);
+                    } else if (grabbedObject === 'ball') {
+                        ball.position.x = intersectionPoint.x;
+                        ball.position.z = intersectionPoint.z;
+                        ball.position.y = Math.max(getTerrainHeight(intersectionPoint.x, intersectionPoint.z) + ballRadius + 3, intersectionPoint.y);
+                    }
+                }
+            } else if (activeTool === 'finger' && trackingCursor) {
+                raycaster.setFromCamera(mouse, camera);
+                cursorPlane.setFromNormalAndCoplanarPoint(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 0));
+                if (raycaster.ray.intersectPlane(cursorPlane, cursorWorldPos)) {
+                    const limit = (boxSize / 2) - 1.5;
+                    targetPosition.x = Math.max(-limit, Math.min(limit, cursorWorldPos.x));
+                    targetPosition.z = Math.max(-limit, Math.min(limit, cursorWorldPos.z));
+                    targetPosition.y = 0;
+                    spiderSpeed = 0.08;
+                }
+            }
+        });
+
+        window.addEventListener('pointerup', () => {
+            if (activeTool === 'finger' && isHoldingBall) {
+                isHoldingBall = false;
+                controls.enabled = true;
+
+                const camDir = new THREE.Vector3();
+                camera.getWorldDirection(camDir);
+                camDir.y = 0;
+                camDir.normalize();
+
+                const maxHoldTime = 3.0;
+                const effectiveTime = Math.min(chargeTime, maxHoldTime);
+                const speedMultiplier = 8 + effectiveTime * 15;
+
+                ball.position.copy(ballOriginalPos);
+                ballVelocity.copy(camDir).multiplyScalar(speedMultiplier);
+                ballVelocity.y = 6 + effectiveTime * 6;
+                playBounceSound(1.5);
+            } else if (activeTool === 'grab' && grabbedObject) {
+                grabbedObject = null;
+                controls.enabled = true;
+                pickNewTarget();
+            }
+        });
+
         function pickNewTarget() {
+            if (activeTool === 'finger' && trackingCursor) return;
             const limit = (boxSize / 2) - 2;
+            spiderSpeed = 0.02 + Math.random() * 0.06;
+
             if (Math.random() < 0.3) {
                 targetingBall = true;
+                spiderSpeed = 0.06 + Math.random() * 0.04;
             } else {
                 targetingBall = false;
                 targetPosition.set(
@@ -473,103 +770,289 @@
         // ===== 8. Animation Loop =====
         const clock = new THREE.Clock();
         let walkCycle = 0;
+        let idleTime = 0;
+        let isFrontLegDancing = false;
+        let danceTimer = 0;
 
         function animate() {
             requestAnimationFrame(animate);
             const delta = clock.getDelta();
 
-            // --- Spider Movement ---
-            if (targetingBall) {
-                targetPosition.set(ball.position.x, 0, ball.position.z);
-            }
-            spiderGroup.lookAt(targetPosition);
+            for (let i = activeRipples.length - 1; i >= 0; i--) {
+                const r = activeRipples[i];
+                r.life -= delta * 1.5;
+                r.mesh.scale.addScalar(delta * 3.0);
+                r.mesh.material.opacity = r.life * 0.8;
 
-            const distanceToTarget = spiderGroup.position.distanceTo(targetPosition);
-
-            if (distanceToTarget < 1.0) {
-                if (Math.random() < 0.02) pickNewTarget();
-                walkCycle = 0;
-            } else {
-                if (isJumping) {
-                    jumpProgress += delta * 1.5;
-                    if (jumpProgress > 1) jumpProgress = 1;
-
-                    spiderGroup.position.lerpVectors(startJumpPos, targetPosition, jumpProgress);
-                    const jumpHeight = 4;
-                    spiderGroup.position.y = Math.sin(jumpProgress * Math.PI) * jumpHeight;
-
-                    // Tuck legs during flight
-                    spiderLegs.forEach((leg) => {
-                        leg.femurPivot.rotation.x = THREE.MathUtils.lerp(
-                            leg.femurPivot.rotation.x,
-                            leg.baseFemurX - 0.5,
-                            0.1
-                        );
-                        leg.tibiaPivot.rotation.x = THREE.MathUtils.lerp(
-                            leg.tibiaPivot.rotation.x,
-                            leg.baseTibiaX + 0.6,
-                            0.1
-                        );
-                    });
-
-                    if (jumpProgress === 1) isJumping = false;
-                } else {
-                    // Walking
-                    const moveDir = new THREE.Vector3().subVectors(targetPosition, spiderGroup.position).normalize();
-                    spiderGroup.position.add(moveDir.multiplyScalar(spiderSpeed));
-
-                    // Body bounce while walking
-                    walkCycle += delta * 12;
-                    spiderGroup.position.y = Math.abs(Math.sin(walkCycle)) * 0.2;
-
-                    // Leg stepping animation with hierarchical pivots
-                    spiderLegs.forEach((leg) => {
-                        const offset = leg.index % 2 === 0 ? 0 : Math.PI;
-                        const stepAngle = Math.sin(walkCycle + offset);
-                        leg.femurPivot.rotation.x = leg.baseFemurX + stepAngle * 0.15;
-                        leg.tibiaPivot.rotation.x = leg.baseTibiaX + stepAngle * 0.25;
-                        leg.root.rotation.y = leg.baseYaw + stepAngle * 0.05;
-                    });
+                if (r.life <= 0) {
+                    scene.remove(r.mesh);
+                    r.mesh.geometry.dispose();
+                    r.mesh.material.dispose();
+                    activeRipples.splice(i, 1);
                 }
             }
 
-            // --- Collision with ball ---
-            const collisionDistance = 2.2;
-            if (spiderGroup.position.distanceTo(ball.position) < collisionDistance) {
-                const pushDir = new THREE.Vector3().subVectors(ball.position, spiderGroup.position).normalize();
-                pushDir.y += 0.5;
-                pushDir.normalize();
-                const hitForce = isJumping ? 15 : 8;
-                ballVelocity.add(pushDir.multiplyScalar(hitForce));
-                pickNewTarget();
+            if (isHoldingBall) {
+                chargeTime += delta;
+                const shakeIntensity = Math.min(0.3, 0.05 + chargeTime * 0.05);
+                ball.position.copy(ballOriginalPos).add(new THREE.Vector3(
+                    (Math.random() - 0.5) * shakeIntensity,
+                    (Math.random() - 0.5) * shakeIntensity,
+                    (Math.random() - 0.5) * shakeIntensity
+                ));
+            } else if (grabbedObject === 'ball') {
+                // Held by grab tool
+            } else {
+                ballVelocity.y -= gravity * delta;
+                ball.position.addScaledVector(ballVelocity, delta);
+                ballVelocity.x *= friction;
+                ballVelocity.z *= friction;
+
+                const groundHeightAtBall = getTerrainHeight(ball.position.x, ball.position.z) + 0.02;
+                const minBallY = groundHeightAtBall + ballRadius;
+
+                const currentTerrainH = getTerrainHeight(ball.position.x, ball.position.z);
+                const isBallInWater = currentTerrainH < waterLevel && ball.position.y <= waterLevel + ballRadius;
+                if (isBallInWater && !ballWasInWater && Math.abs(ballVelocity.y) > 2) {
+                    triggerSplash(ball.position);
+                }
+                ballWasInWater = isBallInWater;
+
+                if (ball.position.y <= minBallY) {
+                    ball.position.y = minBallY;
+
+                    const terrainNormal = getTerrainNormal(ball.position.x, ball.position.z);
+                    const dot = ballVelocity.dot(terrainNormal);
+                    if (dot < 0) {
+                        const impactSpeed = Math.abs(dot);
+                        if (impactSpeed > 1.0) {
+                            playBounceSound(impactSpeed / 10);
+                        }
+                        ballVelocity.addScaledVector(terrainNormal, -dot * (1.0 + bounceFactor));
+                    }
+
+                    ballVelocity.addScaledVector(terrainNormal, -0.5);
+
+                    if (ball.position.y - minBallY < 0.2 && ballVelocity.length() < 0.5) {
+                        ballVelocity.set(0, 0, 0);
+                    }
+                }
+
+                const ceilingLimit = boxSize - ballRadius;
+                if (ball.position.y >= ceilingLimit) {
+                    ball.position.y = ceilingLimit;
+                    ballVelocity.y *= -bounceFactor;
+                    playBounceSound(0.5);
+                }
+
+                const boxLimit = (boxSize / 2) - ballRadius;
+                if (ball.position.x > boxLimit) {
+                    ball.position.x = boxLimit;
+                    ballVelocity.x *= -bounceFactor;
+                    playBounceSound(0.4);
+                } else if (ball.position.x < -boxLimit) {
+                    ball.position.x = -boxLimit;
+                    ballVelocity.x *= -bounceFactor;
+                    playBounceSound(0.4);
+                }
+                if (ball.position.z > boxLimit) {
+                    ball.position.z = boxLimit;
+                    ballVelocity.z *= -bounceFactor;
+                    playBounceSound(0.4);
+                } else if (ball.position.z < -boxLimit) {
+                    ball.position.z = -boxLimit;
+                    ballVelocity.z *= -bounceFactor;
+                    playBounceSound(0.4);
+                }
             }
 
-            // --- Ball Physics ---
-            ballVelocity.y -= gravity * delta;
-            ball.position.addScaledVector(ballVelocity, delta);
-            ballVelocity.x *= friction;
-            ballVelocity.z *= friction;
-
-            if (ball.position.y <= ballRadius) {
-                ball.position.y = ballRadius;
-                ballVelocity.y *= -bounceFactor;
-                if (Math.abs(ballVelocity.y) < 1.0) ballVelocity.y = 0;
+            if (targetingBall && !isHoldingBall && grabbedObject !== 'ball') {
+                targetPosition.set(ball.position.x, 0, ball.position.z);
             }
 
-            const boxLimit = (boxSize / 2) - ballRadius;
-            if (ball.position.x > boxLimit) {
-                ball.position.x = boxLimit;
-                ballVelocity.x *= -bounceFactor;
-            } else if (ball.position.x < -boxLimit) {
-                ball.position.x = -boxLimit;
-                ballVelocity.x *= -bounceFactor;
+            const toTarget = new THREE.Vector3().subVectors(targetPosition, spiderGroup.position);
+            toTarget.y = 0;
+            const distanceToTarget = toTarget.length();
+            const isMoving = distanceToTarget >= 1.0;
+
+            if (!isMoving && !isJumping && !(activeTool === 'finger' && trackingCursor)) {
+                if (Math.random() < 0.02) pickNewTarget();
             }
-            if (ball.position.z > boxLimit) {
-                ball.position.z = boxLimit;
-                ballVelocity.z *= -bounceFactor;
-            } else if (ball.position.z < -boxLimit) {
-                ball.position.z = -boxLimit;
-                ballVelocity.z *= -bounceFactor;
+
+            if (grabbedObject === 'spider') {
+                spiderLegs.forEach((leg) => {
+                    leg.femurPivot.rotation.x = leg.baseFemurX + 0.3;
+                    leg.tibiaPivot.rotation.x = leg.baseTibiaX + 0.4;
+                });
+            } else if (isJumping) {
+                jumpProgress += delta * 1.5;
+                if (jumpProgress > 1) jumpProgress = 1;
+
+                const jumpDir = new THREE.Vector3().subVectors(targetPosition, startJumpPos);
+                jumpDir.y = 0;
+                if (jumpDir.lengthSq() > 0.001) {
+                    const targetRot = Math.atan2(jumpDir.x, jumpDir.z);
+                    spiderGroup.rotation.y = THREE.MathUtils.lerp(spiderGroup.rotation.y, targetRot, 0.2);
+                }
+
+                spiderGroup.position.lerpVectors(startJumpPos, targetPosition, jumpProgress);
+                
+                const targetGroundY = getTerrainHeight(spiderGroup.position.x, spiderGroup.position.z);
+                const jumpHeight = 4;
+                spiderGroup.position.y = targetGroundY + Math.sin(jumpProgress * Math.PI) * jumpHeight;
+
+                spiderLegs.forEach((leg) => {
+                    leg.femurPivot.rotation.x = THREE.MathUtils.lerp(
+                        leg.femurPivot.rotation.x,
+                        leg.baseFemurX - 0.5,
+                        0.1
+                    );
+                    leg.tibiaPivot.rotation.x = THREE.MathUtils.lerp(
+                        leg.tibiaPivot.rotation.x,
+                        leg.baseTibiaX + 0.6,
+                        0.1
+                    );
+                });
+
+                if (jumpProgress === 1) {
+                    isJumping = false;
+                    if (getTerrainHeight(spiderGroup.position.x, spiderGroup.position.z) < waterLevel) {
+                        triggerSplash(spiderGroup.position);
+                    }
+                }
+            } else {
+                if (isMoving) {
+                    idleTime = 0;
+                    isFrontLegDancing = false;
+                    const targetRotation = Math.atan2(toTarget.x, toTarget.z);
+                    let currentRotation = spiderGroup.rotation.y;
+
+                    let diff = targetRotation - currentRotation;
+                    while (diff < -Math.PI) diff += Math.PI * 2;
+                    while (diff > Math.PI) diff -= Math.PI * 2;
+
+                    spiderGroup.rotation.y += diff * Math.min(1.0, delta * 4.0);
+
+                    const forwardDir = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), spiderGroup.rotation.y);
+                    spiderGroup.position.addScaledVector(forwardDir, spiderSpeed);
+
+                    walkCycle += delta * (spiderSpeed * 200); 
+                } else {
+                    walkCycle = 0;
+                    idleTime += delta;
+
+                    // Randomly trigger front leg dance when idling for a bit
+                    if (!isFrontLegDancing && idleTime > 2.0 && Math.random() < 0.5) {
+                        isFrontLegDancing = true;
+                        danceTimer = 0;
+                    }
+                    if (isFrontLegDancing) {
+                        danceTimer += delta;
+                        if (danceTimer > 4.0) {
+                            isFrontLegDancing = false;
+                        }
+                    }
+                }
+
+                const currentGroundY = getTerrainHeight(spiderGroup.position.x, spiderGroup.position.z);
+                const walkBob = isMoving ? Math.abs(Math.sin(walkCycle * 1.5)) * 0.15 : 0;
+                spiderGroup.position.y = THREE.MathUtils.lerp(spiderGroup.position.y, currentGroundY + walkBob, 0.2);
+
+                if (!isMoving) {
+                    const breath = Math.sin(idleTime * 2.5) * 0.04;
+                    const lookAround = Math.sin(idleTime * 1.0) * 0.05;
+                    
+                    spiderBodyContainer.position.y = breath;
+                    spiderBodyContainer.rotation.x = breath * 0.5;
+                    spiderBodyContainer.rotation.y = lookAround;
+
+                    leftPedipalp.rotation.z = Math.sin(idleTime * 6) * 0.05;
+                    rightPedipalp.rotation.z = -Math.sin(idleTime * 6) * 0.05;
+                } else {
+                    spiderBodyContainer.position.y = THREE.MathUtils.lerp(spiderBodyContainer.position.y, 0, 0.2);
+                    spiderBodyContainer.rotation.x = THREE.MathUtils.lerp(spiderBodyContainer.rotation.x, 0, 0.2);
+                    spiderBodyContainer.rotation.y = THREE.MathUtils.lerp(spiderBodyContainer.rotation.y, 0, 0.2);
+                }
+
+                spiderLegs.forEach((leg) => {
+                    const isFrontLeg = (leg.index === 0 || leg.index === 1);
+
+                    if (!isMoving && isFrontLegDancing && isFrontLeg) {
+                        // --- Front Leg Dance Animation (Indices 0 & 1) ---
+                        const sideMultiplier = (leg.index === 0) ? 1 : -1;
+                        const dancePhase = danceTimer * 8; // speed of dance swaying
+
+                        // Lift up and wave randomly/rhythmically
+                        leg.femurPivot.rotation.x = leg.baseFemurX - 1.5 + Math.sin(dancePhase) * 0.3;
+                        leg.tibiaPivot.rotation.x = leg.baseTibiaX + 1.5 + Math.cos(dancePhase * 1.3) * 0.4;
+                        leg.root.rotation.y = leg.baseYaw + Math.sin(dancePhase * 0.7) * 0.3 * sideMultiplier;
+                    } else {
+                        // --- Standard Procedural Walk / Stride / Idle ---
+                        const uniqueOffset = leg.index * 0.785;
+                        const cycle = (isMoving ? walkCycle : 0) + uniqueOffset;
+
+                        const rawCycleVal = Math.sin(cycle);
+                        const stepUp = Math.max(0, rawCycleVal);
+                        const stepForward = Math.cos(cycle) * 0.3;
+
+                        const footWorldPos = new THREE.Vector3(leg.xSide * 1.4, 0, leg.localRestZ + stepForward);
+                        footWorldPos.applyAxisAngle(new THREE.Vector3(0, 1, 0), spiderGroup.rotation.y);
+                        footWorldPos.add(spiderGroup.position);
+
+                        const exactFloorY = getTerrainHeight(footWorldPos.x, footWorldPos.z) + 0.02;
+                        
+                        const isFootInWater = exactFloorY < waterLevel;
+                        if (isFootInWater && !leg.wasInWater && stepUp < 0.1) {
+                            triggerSplash(footWorldPos);
+                        }
+                        leg.wasInWater = isFootInWater;
+
+                        const groundLocalY = exactFloorY - spiderGroup.position.y - 0.78;
+                        const idleBreathOffset = !isMoving ? Math.sin(idleTime * 2.5 + leg.index) * 0.03 : 0;
+
+                        const targetY = (groundLocalY / Math.cos(leg.femurPivot.rotation.z)) + stepUp * 0.45;
+                        const targetZ = 1.6 + stepForward;
+
+                        const L1 = 1.4;
+                        const L2 = 1.4;
+                        const D = Math.sqrt(targetY * targetY + targetZ * targetZ);
+                        const D_clamped = Math.min(D, L1 + L2 - 0.001);
+
+                        const alpha = Math.acos((L1 * L1 + D_clamped * D_clamped - L2 * L2) / (2 * L1 * D_clamped));
+                        const beta = Math.acos((L1 * L1 + L2 * L2 - D_clamped * D_clamped) / (2 * L1 * L2));
+
+                        const theta_down = Math.atan2(-targetY, targetZ);
+
+                        leg.femurPivot.rotation.x = theta_down - alpha + idleBreathOffset;
+                        leg.tibiaPivot.rotation.x = Math.PI - beta - idleBreathOffset;
+
+                        leg.root.rotation.y = leg.baseYaw + (stepForward * 0.1);
+                    }
+                });
+            }
+
+            if (!isHoldingBall && grabbedObject !== 'spider' && grabbedObject !== 'ball') {
+                const spiderCenter = spiderGroup.position.clone().add(new THREE.Vector3(0, 1.0, 0));
+                const spiderRadius = 1.3;
+                const minDistance = spiderRadius + ballRadius;
+
+                const toBall = new THREE.Vector3().subVectors(ball.position, spiderCenter);
+                const currentDist = toBall.length();
+
+                if (currentDist < minDistance) {
+                    toBall.normalize();
+                    ball.position.copy(spiderCenter).addScaledVector(toBall, minDistance);
+
+                    const pushDir = toBall.clone();
+                    pushDir.y += 0.3;
+                    pushDir.normalize();
+
+                    const hitForce = isJumping ? 18 : 10;
+                    ballVelocity.add(pushDir.multiplyScalar(hitForce));
+                    
+                    playSpiderKickSound();
+                    pickNewTarget();
+                }
             }
 
             controls.update();
@@ -585,4 +1068,5 @@
         animate();
     </script>
 </body>
+
 </html>
