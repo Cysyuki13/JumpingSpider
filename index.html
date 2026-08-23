@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Jumping Spider Pet - Collapsible Sidebar</title>
+    <title>3D Jumping Spider Pet - Enhanced Ball Physics</title>
     <style>
         body {
             margin: 0;
@@ -42,14 +42,59 @@
             cursor: pointer;
         }
 
+        #left-sidebar {
+            position: absolute;
+            top: 20px;
+            left: 0;
+            width: 80px;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(8px);
+            border-radius: 0 12px 12px 0;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            box-shadow: 4px 8px 32px rgba(0, 0, 0, 0.4);
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 10;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        #left-sidebar.collapsed {
+            transform: translateX(calc(-100% + 15px));
+        }
+
+        #left-sidebar.collapsed:hover {
+            transform: translateX(calc(-100% + 20px));
+            cursor: pointer;
+        }
+
+        .menu-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .btn-label {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 10px;
+            font-weight: 600;
+            text-align: center;
+            letter-spacing: 0.5px;
+            user-select: none;
+        }
+
         .tool-btn {
             width: 50px;
-            height: 50px;
+            height: 45px;
             border-radius: 10px;
             border: none;
             background: rgba(255, 255, 255, 0.1);
             color: #fff;
-            font-size: 24px;
+            font-size: 22px;
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -71,10 +116,64 @@
             height: 25px;
             font-size: 16px;
         }
+
+        #btn-left-toggle {
+            height: 25px;
+            font-size: 16px;
+            width: 50px;
+            align-self: center;
+        }
+
+        /* Exit Camera Overlay Button */
+        #btn-exit-cam {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 12px 24px;
+            background: rgba(255, 51, 102, 0.85);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+            z-index: 100;
+            display: none;
+            transition: background 0.2s ease, transform 0.2s ease;
+        }
+
+        #btn-exit-cam:hover {
+            background: rgba(255, 51, 102, 1);
+            transform: translateX(-50%) scale(1.05);
+        }
     </style>
 </head>
 
 <body>
+    <button id="btn-exit-cam">Exit Camera Mode</button>
+
+    <div id="left-sidebar">
+        <button id="btn-left-toggle" class="tool-btn" title="Toggle Info Menu">◀</button>
+        <div class="menu-item">
+            <button id="btn-dance" class="tool-btn" title="Force Dance">💃</button>
+            <span class="btn-label">Dance</span>
+        </div>
+        <div class="menu-item">
+            <button id="btn-play-ball" class="tool-btn" title="Play Ball Once">⚽</button>
+            <span class="btn-label">Play Ball</span>
+        </div>
+        <div class="menu-item">
+            <button id="btn-follow-cam" class="tool-btn" title="Follow Cam">🎥</button>
+            <span class="btn-label">Follow</span>
+        </div>
+        <div class="menu-item">
+            <button id="btn-fpv-cam" class="tool-btn" title="First Person Cam">🕷️</button>
+            <span class="btn-label">Spider View</span>
+        </div>
+    </div>
+
     <div id="sidebar">
         <button id="btn-toggle" class="tool-btn" title="Collapse Menu">▶</button>
         <button id="btn-finger" class="tool-btn" title="Finger Tool">👆</button>
@@ -174,7 +273,7 @@
         const scene = new THREE.Scene();
         scene.background = new THREE.Color('#222222');
 
-        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1000);
         camera.position.set(25, 15, 35);
 
         const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -229,8 +328,8 @@
             const edgeFactor = Math.min(1.0, Math.max(0, Math.min(edgeDistanceX, edgeDistanceZ) / 2.0));
 
             return (Math.sin(x * 0.35) * Math.cos(z * 0.35) * 0.6 +
-                    Math.sin(x * 0.8) * Math.sin(z * 0.7) * 0.25 +
-                    Math.cos(x * 1.5 + z * 1.5) * 0.1) * edgeFactor;
+                Math.sin(x * 0.8) * Math.sin(z * 0.7) * 0.25 +
+                Math.cos(x * 1.5 + z * 1.5) * 0.1) * edgeFactor;
         }
 
         function getTerrainNormal(x, z) {
@@ -290,7 +389,7 @@
         }
         floorGeo.computeVertexNormals();
 
-        const floorMat = new THREE.MeshStandardMaterial({ 
+        const floorMat = new THREE.MeshStandardMaterial({
             map: createSoilTexture(),
             roughness: 0.9,
             metalness: 0.05
@@ -301,7 +400,7 @@
         floor.receiveShadow = true;
         scene.add(floor);
 
-        const waterLevel = -0.25; 
+        const waterLevel = -0.25;
         const waterGeo = new THREE.PlaneGeometry(boxSize - 1, boxSize - 1);
         const waterMat = new THREE.MeshStandardMaterial({
             color: 0x3399ff,
@@ -334,7 +433,7 @@
             }
         }
 
-        // ===== 4. Toy Ball =====
+        // ===== 4. Toy Ball & Enhanced Physics Parameters =====
         const ballRadius = 1;
         const ballGeo = new THREE.SphereGeometry(ballRadius, 16, 16);
         const ballMat = new THREE.MeshStandardMaterial({ color: 0xff3366, roughness: 0.4 });
@@ -344,9 +443,10 @@
         scene.add(ball);
 
         const ballVelocity = new THREE.Vector3(0, 0, 0);
-        const gravity = 25;
-        const bounceFactor = 0.65;
-        const friction = 0.97;
+        const gravity = 22;
+        const airDrag = 0.992;
+        const bounceFactor = 0.45;
+        const surfaceFriction = 0.94;
 
         let isHoldingBall = false;
         let chargeTime = 0;
@@ -470,6 +570,9 @@
         crestFront.position.set(0, 1.9, 0.6);
         spiderBodyContainer.add(crestFront);
 
+        // --- Leg Thickness Configuration ---
+        const legThickness = 0.32;
+
         // --- Hierarchical Jointed Legs ---
         const spiderLegs = [];
 
@@ -486,7 +589,7 @@
             femurPivot.rotation.z = xSide * 0.2;
             coxa.add(femurPivot);
 
-            const femur = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.18, 1.4), legMat);
+            const femur = new THREE.Mesh(new THREE.BoxGeometry(legThickness, legThickness, 1.4), legMat);
             femur.position.z = 0.7;
             femur.castShadow = true;
             femurPivot.add(femur);
@@ -496,7 +599,7 @@
             tibiaPivot.rotation.x = 0.65;
             femurPivot.add(tibiaPivot);
 
-            const tibia = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.15, 1.0), legMat);
+            const tibia = new THREE.Mesh(new THREE.BoxGeometry(legThickness * 0.85, legThickness * 0.85, 1.0), legMat);
             tibia.position.z = 0.5;
             tibia.castShadow = true;
             tibiaPivot.add(tibia);
@@ -506,7 +609,7 @@
             tarsusPivot.rotation.x = -0.25;
             tibiaPivot.add(tarsusPivot);
 
-            const tarsus = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.4), legMat);
+            const tarsus = new THREE.Mesh(new THREE.BoxGeometry(legThickness * 0.6, legThickness * 0.6, 0.4), legMat);
             tarsus.position.z = 0.2;
             tarsus.castShadow = true;
             tarsusPivot.add(tarsus);
@@ -529,10 +632,8 @@
             return legRoot;
         }
 
-        // Leg index mapping:
-        // 0: Right Front, 1: Left Front, 2 & 3: Middle-Front, 4 & 5: Middle-Back, 6 & 7: Back
-        spiderGroup.add(createLeg(1, 0.8, 0.6, 0));   // Right Front
-        spiderGroup.add(createLeg(-1, 0.8, -0.6, 1)); // Left Front
+        spiderGroup.add(createLeg(1, 0.8, 0.6, 0));
+        spiderGroup.add(createLeg(-1, 0.8, -0.6, 1));
         spiderGroup.add(createLeg(1, 0.3, 0.9, 2));
         spiderGroup.add(createLeg(-1, 0.3, -0.9, 3));
         spiderGroup.add(createLeg(1, -0.3, 1.3, 4));
@@ -550,6 +651,67 @@
         controls.maxDistance = 60;
         controls.minDistance = 10;
 
+        // ===== Camera Mode State Variables =====
+        let cameraMode = 'normal';
+        const btnFollowCam = document.getElementById('btn-follow-cam');
+        const btnFpvCam = document.getElementById('btn-fpv-cam');
+        const btnExitCam = document.getElementById('btn-exit-cam');
+
+        function resetCameraModes() {
+            if (cameraMode === 'fpv') {
+                camera.position.set(25, 15, 35);
+                camera.rotation.set(0, 0, 0);
+                controls.target.set(0, boxSize / 2, 0);
+            }
+            cameraMode = 'normal';
+            btnFollowCam.classList.remove('active');
+            btnFpvCam.classList.remove('active');
+            btnExitCam.style.display = 'none';
+            controls.enabled = true;
+        }
+
+        btnFollowCam.addEventListener('click', () => {
+            playClickSound();
+            if (cameraMode === 'follow') {
+                resetCameraModes();
+            } else {
+                resetCameraModes();
+                cameraMode = 'follow';
+                btnFollowCam.classList.add('active');
+                btnExitCam.style.display = 'block';
+                controls.enabled = true;
+            }
+        });
+
+        btnFpvCam.addEventListener('click', () => {
+            playClickSound();
+            if (cameraMode === 'fpv') {
+                resetCameraModes();
+            } else {
+                resetCameraModes();
+                cameraMode = 'fpv';
+                btnFpvCam.classList.add('active');
+                btnExitCam.style.display = 'block';
+
+                controls.enabled = false;
+                spiderGroup.updateMatrixWorld(true);
+
+                const eyeLocal = new THREE.Vector3(0, 1.3, 6.0);
+                const eyeWorld = eyeLocal.clone().applyMatrix4(spiderGroup.matrixWorld);
+                camera.position.copy(eyeWorld);
+
+                const lookAtLocal = new THREE.Vector3(0, 1.3, 11.5);
+                const lookAtWorld = lookAtLocal.clone().applyMatrix4(spiderGroup.matrixWorld);
+                camera.lookAt(lookAtWorld);
+                controls.target.copy(lookAtWorld);
+            }
+        });
+
+        btnExitCam.addEventListener('click', () => {
+            playClickSound();
+            resetCameraModes();
+        });
+
         // ===== 7. UI & Tool Selection System =====
         let targetPosition = new THREE.Vector3();
         let isJumping = false;
@@ -557,13 +719,14 @@
         let startJumpPos = new THREE.Vector3();
         let spiderSpeed = 0.05;
         let targetingBall = false;
+        let playBallRequested = false;
 
         let trackingCursor = false;
         const cursorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
         const cursorWorldPos = new THREE.Vector3();
 
-        let activeTool = null; 
-        let grabbedObject = null; 
+        let activeTool = null;
+        let grabbedObject = null;
         let grabPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
         let intersectionPoint = new THREE.Vector3();
 
@@ -571,6 +734,11 @@
         const btnFinger = document.getElementById('btn-finger');
         const btnGrab = document.getElementById('btn-grab');
         const btnToggle = document.getElementById('btn-toggle');
+
+        const leftSidebar = document.getElementById('left-sidebar');
+        const btnLeftToggle = document.getElementById('btn-left-toggle');
+        const btnDance = document.getElementById('btn-dance');
+        const btnPlayBall = document.getElementById('btn-play-ball');
 
         btnToggle.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -587,6 +755,72 @@
             }
         });
 
+        btnLeftToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            playClickSound();
+            leftSidebar.classList.toggle('collapsed');
+            btnLeftToggle.textContent = leftSidebar.classList.contains('collapsed') ? '◀' : '▶';
+        });
+
+        leftSidebar.addEventListener('click', (e) => {
+            if (leftSidebar.classList.contains('collapsed')) {
+                playClickSound();
+                leftSidebar.classList.remove('collapsed');
+                btnLeftToggle.textContent = '◀';
+            }
+        });
+
+        window.addEventListener('pointerdown', (event) => {
+            if (!sidebar.classList.contains('collapsed') && !sidebar.contains(event.target)) {
+                playClickSound();
+                sidebar.classList.add('collapsed');
+                btnToggle.textContent = '▶';
+            }
+            if (!leftSidebar.classList.contains('collapsed') && !leftSidebar.contains(event.target)) {
+                playClickSound();
+                leftSidebar.classList.add('collapsed');
+                btnLeftToggle.textContent = '▶';
+            }
+        });
+
+        let isFrontLegDancing = false;
+        let danceTimer = 0;
+
+        btnDance.addEventListener('click', () => {
+            playClickSound();
+
+            isJumping = false;
+            trackingCursor = false;
+            targetingBall = false;
+            playBallRequested = false;
+            targetPosition.copy(spiderGroup.position);
+
+            isFrontLegDancing = true;
+            danceTimer = 0;
+            btnDance.classList.add('active');
+            setTimeout(() => {
+                btnDance.classList.remove('active');
+            }, 1000);
+        });
+
+        btnPlayBall.addEventListener('click', () => {
+            playClickSound();
+
+            isJumping = false;
+            trackingCursor = false;
+            isFrontLegDancing = false;
+            targetingBall = true;
+            playBallRequested = true;
+
+            // Give the spider a random speed whenever Play Ball is clicked
+            spiderSpeed = 0.04 + Math.random() * 0.07;
+
+            btnPlayBall.classList.add('active');
+            setTimeout(() => {
+                btnPlayBall.classList.remove('active');
+            }, 1000);
+        });
+
         btnFinger.addEventListener('click', () => {
             playClickSound();
             if (activeTool === 'finger') {
@@ -598,7 +832,7 @@
                 btnFinger.classList.add('active');
                 btnGrab.classList.remove('active');
             }
-            if (grabbedObject) { grabbedObject = null; controls.enabled = true; }
+            if (grabbedObject) { grabbedObject = null; if (cameraMode !== 'fpv') controls.enabled = true; }
         });
 
         btnGrab.addEventListener('click', () => {
@@ -611,7 +845,7 @@
                 btnGrab.classList.add('active');
                 btnFinger.classList.remove('active');
             }
-            if (isHoldingBall) { isHoldingBall = false; controls.enabled = true; }
+            if (isHoldingBall) { isHoldingBall = false; if (cameraMode !== 'fpv') controls.enabled = true; }
             trackingCursor = false;
         });
 
@@ -620,6 +854,7 @@
 
         window.addEventListener('pointerdown', (event) => {
             if (event.button !== 0) return;
+            if (event.clientX < 90 && event.clientY < 280) return;
             if (event.clientX > window.innerWidth - 90 && event.clientY < 220) return;
             if (!activeTool) return;
 
@@ -638,17 +873,19 @@
                 if (spiderIntersect.length > 0) {
                     playClickSound();
                     playSpiderKickSound();
-                    
+
                     startJumpPos.copy(spiderGroup.position);
                     jumpProgress = 0;
                     isJumping = true;
                     trackingCursor = false;
                     targetingBall = false;
+                    playBallRequested = false;
+                    isFrontLegDancing = false;
 
                     const limit = (boxSize / 2) - 2;
                     const randomAngle = Math.random() * Math.PI * 2;
                     const jumpDist = 5 + Math.random() * 4;
-                    
+
                     targetPosition.set(
                         Math.max(-limit, Math.min(limit, spiderGroup.position.x + Math.cos(randomAngle) * jumpDist)),
                         0,
@@ -660,23 +897,26 @@
                     chargeTime = 0;
                     ballOriginalPos.copy(ball.position);
                     ballVelocity.set(0, 0, 0);
-                    controls.enabled = false;
+                    if (cameraMode !== 'fpv') controls.enabled = false;
                     trackingCursor = false;
                 } else {
                     playClickSound();
                     trackingCursor = true;
                     targetingBall = false;
+                    playBallRequested = false;
                     isJumping = false;
+                    isFrontLegDancing = false;
                 }
             } else if (activeTool === 'grab') {
                 if (spiderIntersect.length > 0) {
                     grabbedObject = 'spider';
                     isJumping = false;
-                    controls.enabled = false;
+                    isFrontLegDancing = false;
+                    if (cameraMode !== 'fpv') controls.enabled = false;
                 } else if (ballIntersect.length > 0) {
                     grabbedObject = 'ball';
                     ballVelocity.set(0, 0, 0);
-                    controls.enabled = false;
+                    if (cameraMode !== 'fpv') controls.enabled = false;
                 }
             }
         });
@@ -687,10 +927,10 @@
 
             if (activeTool === 'grab' && grabbedObject) {
                 raycaster.setFromCamera(mouse, camera);
-                
+
                 const currentY = grabbedObject === 'spider' ? spiderGroup.position.y : ball.position.y;
                 grabPlane.setFromNormalAndCoplanarPoint(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, currentY, 0));
-                
+
                 if (raycaster.ray.intersectPlane(grabPlane, intersectionPoint)) {
                     const limit = (boxSize / 2) - 1.5;
                     intersectionPoint.x = Math.max(-limit, Math.min(limit, intersectionPoint.x));
@@ -722,7 +962,7 @@
         window.addEventListener('pointerup', () => {
             if (activeTool === 'finger' && isHoldingBall) {
                 isHoldingBall = false;
-                controls.enabled = true;
+                if (cameraMode !== 'fpv') controls.enabled = true;
 
                 const camDir = new THREE.Vector3();
                 camera.getWorldDirection(camDir);
@@ -739,13 +979,15 @@
                 playBounceSound(1.5);
             } else if (activeTool === 'grab' && grabbedObject) {
                 grabbedObject = null;
-                controls.enabled = true;
+                if (cameraMode !== 'fpv') controls.enabled = true;
                 pickNewTarget();
             }
         });
 
         function pickNewTarget() {
             if (activeTool === 'finger' && trackingCursor) return;
+            if (isFrontLegDancing) return;
+
             const limit = (boxSize / 2) - 2;
             spiderSpeed = 0.02 + Math.random() * 0.06;
 
@@ -771,8 +1013,6 @@
         const clock = new THREE.Clock();
         let walkCycle = 0;
         let idleTime = 0;
-        let isFrontLegDancing = false;
-        let danceTimer = 0;
 
         function animate() {
             requestAnimationFrame(animate);
@@ -803,79 +1043,99 @@
             } else if (grabbedObject === 'ball') {
                 // Held by grab tool
             } else {
-                ballVelocity.y -= gravity * delta;
-                ball.position.addScaledVector(ballVelocity, delta);
-                ballVelocity.x *= friction;
-                ballVelocity.z *= friction;
+                const subSteps = 12;
+                const subDelta = delta / subSteps;
 
-                const groundHeightAtBall = getTerrainHeight(ball.position.x, ball.position.z) + 0.02;
-                const minBallY = groundHeightAtBall + ballRadius;
+                for (let step = 0; step < subSteps; step++) {
+                    ballVelocity.y -= gravity * subDelta;
+                    ballVelocity.x *= Math.pow(airDrag, subDelta / 0.016);
+                    ballVelocity.z *= Math.pow(airDrag, subDelta / 0.016);
 
-                const currentTerrainH = getTerrainHeight(ball.position.x, ball.position.z);
-                const isBallInWater = currentTerrainH < waterLevel && ball.position.y <= waterLevel + ballRadius;
-                if (isBallInWater && !ballWasInWater && Math.abs(ballVelocity.y) > 2) {
-                    triggerSplash(ball.position);
-                }
-                ballWasInWater = isBallInWater;
+                    ball.position.addScaledVector(ballVelocity, subDelta);
 
-                if (ball.position.y <= minBallY) {
-                    ball.position.y = minBallY;
+                    const groundH = getTerrainHeight(ball.position.x, ball.position.z);
+                    const ceilingLimit = boxSize - ballRadius;
+                    const boxLimit = (boxSize / 2) - ballRadius;
 
-                    const terrainNormal = getTerrainNormal(ball.position.x, ball.position.z);
-                    const dot = ballVelocity.dot(terrainNormal);
-                    if (dot < 0) {
-                        const impactSpeed = Math.abs(dot);
-                        if (impactSpeed > 1.0) {
-                            playBounceSound(impactSpeed / 10);
+                    const isBallInWater = groundH < waterLevel && ball.position.y <= waterLevel + ballRadius;
+                    if (isBallInWater && !ballWasInWater && Math.abs(ballVelocity.y) > 2 && step === 0) {
+                        triggerSplash(ball.position);
+                    }
+                    ballWasInWater = isBallInWater;
+
+                    if (ball.position.y - ballRadius < groundH + 1.5) {
+                        const terrainPoint = new THREE.Vector3(ball.position.x, groundH, ball.position.z);
+                        const terrainNormal = getTerrainNormal(ball.position.x, ball.position.z);
+                        const toBall = new THREE.Vector3().subVectors(ball.position, terrainPoint);
+                        const distAlongNormal = toBall.dot(terrainNormal);
+
+                        if (distAlongNormal < ballRadius) {
+                            const penetration = ballRadius - distAlongNormal;
+                            ball.position.addScaledVector(terrainNormal, penetration);
+
+                            const dot = ballVelocity.dot(terrainNormal);
+                            if (dot < 0) {
+                                const impactSpeed = Math.abs(dot);
+                                if (impactSpeed > 0.8 && step === 0) {
+                                    playBounceSound(Math.min(impactSpeed / 10, 1.0));
+                                }
+                                ballVelocity.addScaledVector(terrainNormal, -dot * (1.0 + bounceFactor));
+                            }
+
+                            const frictionFactor = Math.pow(surfaceFriction, subDelta / 0.016);
+                            ballVelocity.x *= frictionFactor;
+                            ballVelocity.z *= frictionFactor;
+
+                            if (ballVelocity.length() < 0.08 && Math.abs(ballVelocity.y) < 0.1) {
+                                ballVelocity.set(0, 0, 0);
+                            }
                         }
-                        ballVelocity.addScaledVector(terrainNormal, -dot * (1.0 + bounceFactor));
                     }
 
-                    ballVelocity.addScaledVector(terrainNormal, -0.5);
+                    if (ball.position.y >= ceilingLimit) {
+                        ball.position.y = ceilingLimit;
+                        ballVelocity.y *= -bounceFactor;
+                        if (step === 0) playBounceSound(0.5);
+                    }
 
-                    if (ball.position.y - minBallY < 0.2 && ballVelocity.length() < 0.5) {
-                        ballVelocity.set(0, 0, 0);
+                    if (ball.position.x > boxLimit) {
+                        ball.position.x = boxLimit;
+                        ballVelocity.x *= -bounceFactor;
+                        if (step === 0) playBounceSound(0.4);
+                    } else if (ball.position.x < -boxLimit) {
+                        ball.position.x = -boxLimit;
+                        ballVelocity.x *= -bounceFactor;
+                        if (step === 0) playBounceSound(0.4);
+                    }
+                    if (ball.position.z > boxLimit) {
+                        ball.position.z = boxLimit;
+                        ballVelocity.z *= -bounceFactor;
+                        if (step === 0) playBounceSound(0.4);
+                    } else if (ball.position.z < -boxLimit) {
+                        ball.position.z = -boxLimit;
+                        ballVelocity.z *= -bounceFactor;
+                        if (step === 0) playBounceSound(0.4);
                     }
                 }
 
-                const ceilingLimit = boxSize - ballRadius;
-                if (ball.position.y >= ceilingLimit) {
-                    ball.position.y = ceilingLimit;
-                    ballVelocity.y *= -bounceFactor;
-                    playBounceSound(0.5);
-                }
-
-                const boxLimit = (boxSize / 2) - ballRadius;
-                if (ball.position.x > boxLimit) {
-                    ball.position.x = boxLimit;
-                    ballVelocity.x *= -bounceFactor;
-                    playBounceSound(0.4);
-                } else if (ball.position.x < -boxLimit) {
-                    ball.position.x = -boxLimit;
-                    ballVelocity.x *= -bounceFactor;
-                    playBounceSound(0.4);
-                }
-                if (ball.position.z > boxLimit) {
-                    ball.position.z = boxLimit;
-                    ballVelocity.z *= -bounceFactor;
-                    playBounceSound(0.4);
-                } else if (ball.position.z < -boxLimit) {
-                    ball.position.z = -boxLimit;
-                    ballVelocity.z *= -bounceFactor;
-                    playBounceSound(0.4);
+                const horizontalSpeed = Math.sqrt(ballVelocity.x * ballVelocity.x + ballVelocity.z * ballVelocity.z);
+                if (horizontalSpeed > 0.05) {
+                    const rotAxis = new THREE.Vector3(-ballVelocity.z, 0, ballVelocity.x).normalize();
+                    const angularDist = (horizontalSpeed * delta) / ballRadius;
+                    ball.rotateOnWorldAxis(rotAxis, angularDist);
                 }
             }
 
-            if (targetingBall && !isHoldingBall && grabbedObject !== 'ball') {
+            if (targetingBall && !isHoldingBall && grabbedObject !== 'ball' && !isFrontLegDancing) {
                 targetPosition.set(ball.position.x, 0, ball.position.z);
             }
 
             const toTarget = new THREE.Vector3().subVectors(targetPosition, spiderGroup.position);
             toTarget.y = 0;
             const distanceToTarget = toTarget.length();
-            const isMoving = distanceToTarget >= 1.0;
+            const isMoving = distanceToTarget >= 1.0 && !isFrontLegDancing;
 
-            if (!isMoving && !isJumping && !(activeTool === 'finger' && trackingCursor)) {
+            if (!isMoving && !isJumping && !isFrontLegDancing && !(activeTool === 'finger' && trackingCursor)) {
                 if (Math.random() < 0.02) pickNewTarget();
             }
 
@@ -896,7 +1156,7 @@
                 }
 
                 spiderGroup.position.lerpVectors(startJumpPos, targetPosition, jumpProgress);
-                
+
                 const targetGroundY = getTerrainHeight(spiderGroup.position.x, spiderGroup.position.z);
                 const jumpHeight = 4;
                 spiderGroup.position.y = targetGroundY + Math.sin(jumpProgress * Math.PI) * jumpHeight;
@@ -923,7 +1183,6 @@
             } else {
                 if (isMoving) {
                     idleTime = 0;
-                    isFrontLegDancing = false;
                     const targetRotation = Math.atan2(toTarget.x, toTarget.z);
                     let currentRotation = spiderGroup.rotation.y;
 
@@ -936,20 +1195,22 @@
                     const forwardDir = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), spiderGroup.rotation.y);
                     spiderGroup.position.addScaledVector(forwardDir, spiderSpeed);
 
-                    walkCycle += delta * (spiderSpeed * 200); 
+                    walkCycle += delta * (spiderSpeed * 200);
                 } else {
                     walkCycle = 0;
-                    idleTime += delta;
-
-                    // Randomly trigger front leg dance when idling for a bit
-                    if (!isFrontLegDancing && idleTime > 2.0 && Math.random() < 0.5) {
-                        isFrontLegDancing = true;
-                        danceTimer = 0;
+                    if (!isFrontLegDancing) {
+                        idleTime += delta;
+                        if (idleTime > 2.0 && Math.random() < 0.005) {
+                            isFrontLegDancing = true;
+                            danceTimer = 0;
+                        }
                     }
+
                     if (isFrontLegDancing) {
                         danceTimer += delta;
                         if (danceTimer > 4.0) {
                             isFrontLegDancing = false;
+                            idleTime = 0;
                         }
                     }
                 }
@@ -958,10 +1219,10 @@
                 const walkBob = isMoving ? Math.abs(Math.sin(walkCycle * 1.5)) * 0.15 : 0;
                 spiderGroup.position.y = THREE.MathUtils.lerp(spiderGroup.position.y, currentGroundY + walkBob, 0.2);
 
-                if (!isMoving) {
+                if (!isMoving && !isFrontLegDancing) {
                     const breath = Math.sin(idleTime * 2.5) * 0.04;
                     const lookAround = Math.sin(idleTime * 1.0) * 0.05;
-                    
+
                     spiderBodyContainer.position.y = breath;
                     spiderBodyContainer.rotation.x = breath * 0.5;
                     spiderBodyContainer.rotation.y = lookAround;
@@ -977,17 +1238,14 @@
                 spiderLegs.forEach((leg) => {
                     const isFrontLeg = (leg.index === 0 || leg.index === 1);
 
-                    if (!isMoving && isFrontLegDancing && isFrontLeg) {
-                        // --- Front Leg Dance Animation (Indices 0 & 1) ---
+                    if (isFrontLegDancing && isFrontLeg) {
                         const sideMultiplier = (leg.index === 0) ? 1 : -1;
-                        const dancePhase = danceTimer * 8; // speed of dance swaying
+                        const dancePhase = danceTimer * 8;
 
-                        // Lift up and wave randomly/rhythmically
-                        leg.femurPivot.rotation.x = leg.baseFemurX - 1.5 + Math.sin(dancePhase) * 0.3;
-                        leg.tibiaPivot.rotation.x = leg.baseTibiaX + 1.5 + Math.cos(dancePhase * 1.3) * 0.4;
-                        leg.root.rotation.y = leg.baseYaw + Math.sin(dancePhase * 0.7) * 0.3 * sideMultiplier;
+                        leg.femurPivot.rotation.x = -1.0 + Math.sin(dancePhase) * 0.2;
+                        leg.tibiaPivot.rotation.x = 0.2 + Math.cos(dancePhase * 1.3) * 0.2;
+                        leg.root.rotation.y = leg.baseYaw + (0.4 * sideMultiplier) + Math.sin(dancePhase * 0.7) * 0.2;
                     } else {
-                        // --- Standard Procedural Walk / Stride / Idle ---
                         const uniqueOffset = leg.index * 0.785;
                         const cycle = (isMoving ? walkCycle : 0) + uniqueOffset;
 
@@ -1000,7 +1258,7 @@
                         footWorldPos.add(spiderGroup.position);
 
                         const exactFloorY = getTerrainHeight(footWorldPos.x, footWorldPos.z) + 0.02;
-                        
+
                         const isFootInWater = exactFloorY < waterLevel;
                         if (isFootInWater && !leg.wasInWater && stepUp < 0.1) {
                             triggerSplash(footWorldPos);
@@ -1047,12 +1305,35 @@
                     pushDir.y += 0.3;
                     pushDir.normalize();
 
-                    const hitForce = isJumping ? 18 : 10;
+                    const hitForce = playBallRequested ? (12 + Math.random() * 16) : (isJumping ? 18 : 10);
                     ballVelocity.add(pushDir.multiplyScalar(hitForce));
-                    
+
                     playSpiderKickSound();
+
+                    if (playBallRequested) {
+                        playBallRequested = false;
+                        targetingBall = false;
+                    }
                     pickNewTarget();
                 }
+            }
+
+            // ===== Camera Update Logic =====
+            if (cameraMode === 'follow') {
+                const targetCamTarget = spiderGroup.position.clone().add(new THREE.Vector3(0, 1, 0));
+                controls.target.lerp(targetCamTarget, 0.1);
+                controls.update();
+            } else if (cameraMode === 'fpv') {
+                spiderGroup.updateMatrixWorld(true);
+
+                const eyeLocal = new THREE.Vector3(0, 1.3, 6.0);
+                const eyeWorld = eyeLocal.clone().applyMatrix4(spiderGroup.matrixWorld);
+                camera.position.copy(eyeWorld);
+
+                const lookAtLocal = new THREE.Vector3(0, 1.3, 11.5);
+                const lookAtWorld = lookAtLocal.clone().applyMatrix4(spiderGroup.matrixWorld);
+                camera.lookAt(lookAtWorld);
+                controls.target.copy(lookAtWorld);
             }
 
             controls.update();
