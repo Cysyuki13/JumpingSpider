@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>3D Jumping Spider Pet - Enhanced Ball Physics</title>
     <style>
         body {
@@ -11,7 +11,6 @@
             overflow: hidden;
             background-color: #1a1a1a;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            touch-action: none;
         }
 
         #sidebar {
@@ -193,6 +192,20 @@
     <script type="module">
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // ===== Automatically Trigger Fullscreen on First User Interaction =====
+        function requestFullscreenOnStart() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch((err) => {
+                    console.log(`Error attempting to enable fullscreen: ${err.message}`);
+                });
+            }
+            // Remove listener after first interaction so it doesn't keep triggering
+            window.removeEventListener('pointerdown', requestFullscreenOnStart);
+            window.removeEventListener('keydown', requestFullscreenOnStart);
+        }
+        window.addEventListener('pointerdown', requestFullscreenOnStart);
+        window.addEventListener('keydown', requestFullscreenOnStart);
 
         // ===== 0. Web Audio API Setup for Sound Effects =====
         let audioCtx = null;
@@ -651,13 +664,6 @@
         controls.dampingFactor = 0.05;
         controls.maxDistance = 60;
         controls.minDistance = 10;
-        
-        // Mobile-friendly orbit configuration: require two fingers to rotate the camera, 
-        // leaving single touches free for UI interaction and tools.
-        controls.touches = {
-            ONE: THREE.MOUSE.NONE,
-            TWO: THREE.TOUCH.DOLLY_ROTATE
-        };
 
         // ===== Camera Mode State Variables =====
         let cameraMode = 'normal';
@@ -820,6 +826,7 @@
             targetingBall = true;
             playBallRequested = true;
 
+            // Give the spider a random speed whenever Play Ball is clicked
             spiderSpeed = 0.04 + Math.random() * 0.07;
 
             btnPlayBall.classList.add('active');
@@ -860,7 +867,7 @@
         const mouse = new THREE.Vector2();
 
         window.addEventListener('pointerdown', (event) => {
-            if (event.button !== 0 && event.pointerType === 'mouse') return;
+            if (event.button !== 0) return;
             if (event.clientX < 90 && event.clientY < 280) return;
             if (event.clientX > window.innerWidth - 90 && event.clientY < 220) return;
             if (!activeTool) return;
