@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>3D Jumping Spider Pet - Enhanced Ball Physics</title>
     <style>
         body {
@@ -11,6 +11,7 @@
             overflow: hidden;
             background-color: #1a1a1a;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            touch-action: none;
         }
 
         #sidebar {
@@ -176,8 +177,18 @@
 
     <div id="sidebar">
         <button id="btn-toggle" class="tool-btn" title="Collapse Menu">▶</button>
-        <button id="btn-finger" class="tool-btn" title="Finger Tool">👆</button>
-        <button id="btn-grab" class="tool-btn" title="Grab Tool">✊</button>
+        <div class="menu-item">
+            <button id="btn-fullscreen" class="tool-btn" title="Toggle Fullscreen">⛶</button>
+            <span class="btn-label">Full</span>
+        </div>
+        <div class="menu-item">
+            <button id="btn-finger" class="tool-btn" title="Finger Tool">👆</button>
+            <span class="btn-label">Finger</span>
+        </div>
+        <div class="menu-item">
+            <button id="btn-grab" class="tool-btn" title="Grab Tool">✊</button>
+            <span class="btn-label">Grab</span>
+        </div>
     </div>
 
     <script type="importmap">
@@ -192,20 +203,6 @@
     <script type="module">
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-
-        // ===== Automatically Trigger Fullscreen on First User Interaction =====
-        function requestFullscreenOnStart() {
-            if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen().catch((err) => {
-                    console.log(`Error attempting to enable fullscreen: ${err.message}`);
-                });
-            }
-            // Remove listener after first interaction so it doesn't keep triggering
-            window.removeEventListener('pointerdown', requestFullscreenOnStart);
-            window.removeEventListener('keydown', requestFullscreenOnStart);
-        }
-        window.addEventListener('pointerdown', requestFullscreenOnStart);
-        window.addEventListener('keydown', requestFullscreenOnStart);
 
         // ===== 0. Web Audio API Setup for Sound Effects =====
         let audioCtx = null;
@@ -743,8 +740,10 @@
         let grabbedObject = null;
         let grabPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
         let intersectionPoint = new THREE.Vector3();
+        let activePointerId = null;
 
         const sidebar = document.getElementById('sidebar');
+        const btnFullscreen = document.getElementById('btn-fullscreen');
         const btnFinger = document.getElementById('btn-finger');
         const btnGrab = document.getElementById('btn-grab');
         const btnToggle = document.getElementById('btn-toggle');
@@ -753,6 +752,28 @@
         const btnLeftToggle = document.getElementById('btn-left-toggle');
         const btnDance = document.getElementById('btn-dance');
         const btnPlayBall = document.getElementById('btn-play-ball');
+
+        // Fullscreen Toggle functionality
+        btnFullscreen.addEventListener('click', () => {
+            playClickSound();
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.error(`Error attempting to enable full-screen mode: ${err.message}`);
+                });
+                btnFullscreen.classList.add('active');
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+                btnFullscreen.classList.remove('active');
+            }
+        });
+
+        document.addEventListener('fullscreenchange', () => {
+            if (!document.fullscreenElement) {
+                btnFullscreen.classList.remove('active');
+            }
+        });
 
         btnToggle.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -826,7 +847,6 @@
             targetingBall = true;
             playBallRequested = true;
 
-            // Give the spider a random speed whenever Play Ball is clicked
             spiderSpeed = 0.04 + Math.random() * 0.07;
 
             btnPlayBall.classList.add('active');
@@ -867,10 +887,13 @@
         const mouse = new THREE.Vector2();
 
         window.addEventListener('pointerdown', (event) => {
-            if (event.button !== 0) return;
+            if (event.button !== 0 && event.pointerType === 'mouse') return;
             if (event.clientX < 90 && event.clientY < 280) return;
-            if (event.clientX > window.innerWidth - 90 && event.clientY < 220) return;
+            if (event.clientX > window.innerWidth - 90 && event.clientY < 260) return;
             if (!activeTool) return;
+
+            activePointerId = event.pointerId;
+            event.target.setPointerCapture?.(activePointerId);
 
             mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
             mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
@@ -936,6 +959,8 @@
         });
 
         window.addEventListener('pointermove', (event) => {
+            if (activePointerId !== null && event.pointerId !== activePointerId) return;
+
             mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
             mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
@@ -973,7 +998,9 @@
             }
         });
 
-        window.addEventListener('pointerup', () => {
+        const handlePointerUpOrCancel = (event) => {
+            if (activePointerId !== null && event.pointerId !== activePointerId) return;
+
             if (activeTool === 'finger' && isHoldingBall) {
                 isHoldingBall = false;
                 if (cameraMode !== 'fpv') controls.enabled = true;
@@ -996,7 +1023,13 @@
                 if (cameraMode !== 'fpv') controls.enabled = true;
                 pickNewTarget();
             }
-        });
+
+            trackingCursor = false;
+            activePointerId = null;
+        };
+
+        window.addEventListener('pointerup', handlePointerUpOrCancel);
+        window.addEventListener('pointercancel', handlePointerUpOrCancel);
 
         function pickNewTarget() {
             if (activeTool === 'finger' && trackingCursor) return;
