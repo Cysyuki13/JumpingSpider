@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>3D Jumping Spider Pet - Enhanced Ball Physics</title>
+    <title>3D Jumping Spider Pet - Enhanced Textures & Animations</title>
     <style>
         body {
             margin: 0;
@@ -125,7 +125,6 @@
             align-self: center;
         }
 
-        /* Exit Camera Overlay Button */
         #btn-exit-cam {
             position: absolute;
             bottom: 30px;
@@ -149,11 +148,49 @@
             background: rgba(255, 51, 102, 1);
             transform: translateX(-50%) scale(1.05);
         }
+
+        /* Day/Night Time Slider Container Style */
+        #time-control-panel {
+            position: absolute;
+            bottom: 30px;
+            left: 100px;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(8px);
+            padding: 12px 18px;
+            border-radius: 15px;
+            display: none;
+            flex-direction: column;
+            gap: 6px;
+            z-index: 100;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: white;
+            width: 220px;
+        }
+
+        #time-control-panel label {
+            font-size: 12px;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        #time-slider {
+            width: 100%;
+            cursor: pointer;
+            accent-color: #ff3366;
+        }
     </style>
 </head>
 
 <body>
     <button id="btn-exit-cam">Exit Camera Mode</button>
+
+    <!-- Time Slider Control Panel Overlay -->
+    <div id="time-control-panel">
+        <label><span>Time of Day</span><span id="time-text">12:00 PM</span></label>
+        <input type="range" id="time-slider" min="0" max="24" step="0.1" value="12">
+    </div>
 
     <div id="left-sidebar">
         <button id="btn-left-toggle" class="tool-btn" title="Toggle Info Menu">◀</button>
@@ -172,6 +209,11 @@
         <div class="menu-item">
             <button id="btn-fpv-cam" class="tool-btn" title="First Person Cam">🕷️</button>
             <span class="btn-label">Spider View</span>
+        </div>
+        <!-- New Day/Night Lighting Menu Item -->
+        <div class="menu-item">
+            <button id="btn-time-system" class="tool-btn" title="Day/Night System">🌙</button>
+            <span class="btn-label">Time</span>
         </div>
     </div>
 
@@ -355,27 +397,30 @@
             return normal;
         }
 
+        // --- Enhanced Soil Texture with Organic Specks & Pebble Variations ---
         function createSoilTexture() {
             const canvas = document.createElement('canvas');
             canvas.width = 512;
             canvas.height = 512;
             const ctx = canvas.getContext('2d');
 
-            ctx.fillStyle = '#2c1e12';
+            ctx.fillStyle = '#24170e';
             ctx.fillRect(0, 0, 512, 512);
 
-            for (let i = 0; i < 40000; i++) {
+            for (let i = 0; i < 55000; i++) {
                 const x = Math.random() * 512;
                 const y = Math.random() * 512;
-                const radius = Math.random() * 1.5;
+                const radius = Math.random() * 2.2;
 
                 const shade = Math.random();
-                if (shade < 0.6) {
-                    ctx.fillStyle = 'rgba(40, 25, 12, 0.4)';
-                } else if (shade < 0.9) {
-                    ctx.fillStyle = 'rgba(75, 52, 32, 0.4)';
+                if (shade < 0.5) {
+                    ctx.fillStyle = 'rgba(30, 18, 8, 0.5)';
+                } else if (shade < 0.8) {
+                    ctx.fillStyle = 'rgba(75, 50, 28, 0.45)';
+                } else if (shade < 0.95) {
+                    ctx.fillStyle = 'rgba(115, 85, 55, 0.35)';
                 } else {
-                    ctx.fillStyle = 'rgba(105, 82, 55, 0.25)';
+                    ctx.fillStyle = 'rgba(140, 120, 100, 0.4)';
                 }
 
                 ctx.beginPath();
@@ -386,7 +431,7 @@
             const texture = new THREE.CanvasTexture(canvas);
             texture.wrapS = THREE.RepeatWrapping;
             texture.wrapT = THREE.RepeatWrapping;
-            texture.repeat.set(4, 4);
+            texture.repeat.set(5, 5);
             return texture;
         }
 
@@ -402,7 +447,7 @@
 
         const floorMat = new THREE.MeshStandardMaterial({
             map: createSoilTexture(),
-            roughness: 0.9,
+            roughness: 0.85,
             metalness: 0.05
         });
         const floor = new THREE.Mesh(floorGeo, floorMat);
@@ -411,12 +456,13 @@
         floor.receiveShadow = true;
         scene.add(floor);
 
+        // --- Enhanced Animated Water Layer ---
         const waterLevel = -0.25;
-        const waterGeo = new THREE.PlaneGeometry(boxSize - 1, boxSize - 1);
+        const waterGeo = new THREE.PlaneGeometry(boxSize - 1, boxSize - 1, 32, 32);
         const waterMat = new THREE.MeshStandardMaterial({
-            color: 0x3399ff,
+            color: 0x2288ff,
             transparent: true,
-            opacity: 0.6,
+            opacity: 0.65,
             roughness: 0.1,
             metalness: 0.8
         });
@@ -583,8 +629,6 @@
 
         // --- Leg Thickness Configuration ---
         const legThickness = 0.32;
-
-        // --- Hierarchical Jointed Legs ---
         const spiderLegs = [];
 
         function createLeg(xSide, zPos, yawAngle, legIndex) {
@@ -662,7 +706,6 @@
         controls.maxDistance = 60;
         controls.minDistance = 10;
 
-        // ===== Camera Mode State Variables =====
         let cameraMode = 'normal';
         const btnFollowCam = document.getElementById('btn-follow-cam');
         const btnFpvCam = document.getElementById('btn-fpv-cam');
@@ -752,8 +795,82 @@
         const btnLeftToggle = document.getElementById('btn-left-toggle');
         const btnDance = document.getElementById('btn-dance');
         const btnPlayBall = document.getElementById('btn-play-ball');
+        
+        // Day/Night System elements
+        const btnTimeSystem = document.getElementById('btn-time-system');
+        const timeControlPanel = document.getElementById('time-control-panel');
+        const timeSlider = document.getElementById('time-slider');
+        const timeText = document.getElementById('time-text');
 
-        // Fullscreen Toggle functionality
+        btnTimeSystem.addEventListener('click', () => {
+            playClickSound();
+            const isVisible = timeControlPanel.style.display === 'flex';
+            timeControlPanel.style.display = isVisible ? 'none' : 'flex';
+            btnTimeSystem.classList.toggle('active', !isVisible);
+        });
+
+        // Time of Day updates lighting dynamically based on slider (0 to 24 hours)
+        function updateLightingSystem(hour) {
+            // Format text display (e.g., 03:30 PM)
+            const h = Math.floor(hour);
+            const m = Math.floor((hour - h) * 60);
+            const ampm = h >= 12 ? 'PM' : 'AM';
+            const displayHour = h % 12 === 0 ? 12 : h % 12;
+            const displayMin = m < 10 ? '0' + m : m;
+            timeText.textContent = `${displayHour}:${displayMin} ${ampm}`;
+
+            // Calculate angle matching 24 hours (0-24 -> 0 to 2*PI)
+            const angle = (hour / 24) * Math.PI * 2 - Math.PI / 2;
+            const radius = 30;
+            dirLight.position.x = Math.cos(angle) * radius;
+            dirLight.position.y = Math.sin(angle) * radius;
+            dirLight.position.z = 10;
+
+            // Transition colors and intensity based on day/sunset/night states
+            let skyColor, bgHex, ambientIntensity, dirIntensity;
+
+            if (hour >= 5 && hour < 7) {
+                // Dawn / Sunrise
+                const t = (hour - 5) / 2;
+                skyColor = new THREE.Color().lerpColors(new THREE.Color(0x0b1329), new THREE.Color(0xff8c42), t);
+                bgHex = new THREE.Color().lerpColors(new THREE.Color(0x080c14), new THREE.Color(0x382216), t);
+                ambientIntensity = THREE.MathUtils.lerp(0.1, 0.4, t);
+                dirIntensity = THREE.MathUtils.lerp(0.1, 0.5, t);
+            } else if (hour >= 7 && hour < 17) {
+                // Day
+                skyColor = new THREE.Color(0xffffff);
+                bgHex = new THREE.Color(0x222222);
+                ambientIntensity = 0.6;
+                dirIntensity = 0.8;
+            } else if (hour >= 17 && hour < 19) {
+                // Sunset / Dusk
+                const t = (hour - 17) / 2;
+                skyColor = new THREE.Color().lerpColors(new THREE.Color(0xffffff), new THREE.Color(0xff4500), t);
+                bgHex = new THREE.Color().lerpColors(new THREE.Color(0x222222), new THREE.Color(0x200c14), t);
+                ambientIntensity = THREE.MathUtils.lerp(0.6, 0.2, t);
+                dirIntensity = THREE.MathUtils.lerp(0.8, 0.3, t);
+            } else {
+                // Night
+                skyColor = new THREE.Color(0x446699);
+                bgHex = new THREE.Color(0x080c14);
+                ambientIntensity = 0.15;
+                dirIntensity = 0.1;
+            }
+
+            scene.background = bgHex;
+            ambientLight.color = skyColor;
+            ambientLight.intensity = ambientIntensity;
+            dirLight.color = skyColor;
+            dirLight.intensity = Math.max(0, dirLight.position.y > 0 ? dirIntensity : 0.05);
+        }
+
+        timeSlider.addEventListener('input', (e) => {
+            updateLightingSystem(parseFloat(e.target.value));
+        });
+
+        // Initialize lighting at default 12 PM
+        updateLightingSystem(12);
+
         btnFullscreen.addEventListener('click', () => {
             playClickSound();
             if (!document.fullscreenElement) {
@@ -811,7 +928,7 @@
                 sidebar.classList.add('collapsed');
                 btnToggle.textContent = '▶';
             }
-            if (!leftSidebar.classList.contains('collapsed') && !leftSidebar.contains(event.target)) {
+            if (!leftSidebar.classList.contains('collapsed') && !leftSidebar.contains(event.target) && !timeControlPanel.contains(event.target)) {
                 playClickSound();
                 leftSidebar.classList.add('collapsed');
                 btnLeftToggle.textContent = '▶';
@@ -888,8 +1005,9 @@
 
         window.addEventListener('pointerdown', (event) => {
             if (event.button !== 0 && event.pointerType === 'mouse') return;
-            if (event.clientX < 90 && event.clientY < 280) return;
+            if (event.clientX < 90 && event.clientY < 340) return;
             if (event.clientX > window.innerWidth - 90 && event.clientY < 260) return;
+            if (timeControlPanel.contains(event.target)) return;
             if (!activeTool) return;
 
             activePointerId = event.pointerId;
@@ -1064,7 +1182,21 @@
         function animate() {
             requestAnimationFrame(animate);
             const delta = clock.getDelta();
+            const elapsedTime = clock.getElapsedTime();
 
+            // --- Animate Water Surface Waves ---
+            const waterPosAttr = waterGeo.attributes.position;
+            for (let i = 0; i < waterPosAttr.count; i++) {
+                const vx = waterPosAttr.getX(i);
+                const vy = waterPosAttr.getY(i);
+                const waveZ = Math.sin(vx * 1.5 + elapsedTime * 2.5) * Math.cos(vy * 1.5 + elapsedTime * 2.0) * 0.06 +
+                              Math.sin(vx * 3.0 - elapsedTime * 3.5) * 0.02;
+                waterPosAttr.setZ(i, waveZ);
+            }
+            waterPosAttr.needsUpdate = true;
+            waterGeo.computeVertexNormals();
+
+            // --- Animate Ripples ---
             for (let i = activeRipples.length - 1; i >= 0; i--) {
                 const r = activeRipples[i];
                 r.life -= delta * 1.5;
