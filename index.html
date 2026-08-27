@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>3D Jumping Spider Pet - Enhanced Textures & Animations</title>
+    <title>3D Jumping Spider Pet - Enhanced Alive Insect</title>
     <style>
         body {
             margin: 0;
@@ -35,11 +35,11 @@
         }
 
         #sidebar.collapsed {
-            transform: translateX(calc(100% - 15px));
+            transform: translateX(calc(50% + 15px));
         }
 
         #sidebar.collapsed:hover {
-            transform: translateX(calc(100% - 20px));
+            transform: translateX(calc(50%));
             cursor: pointer;
         }
 
@@ -64,12 +64,81 @@
         }
 
         #left-sidebar.collapsed {
-            transform: translateX(calc(-100% + 15px));
+            transform: translateX(calc(-50% - 15px));
         }
 
         #left-sidebar.collapsed:hover {
-            transform: translateX(calc(-100% + 20px));
+            transform: translateX(calc(-50%));
             cursor: pointer;
+        }
+
+        /* Bottom Information Menu */
+        #bottom-info-menu {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(8px);
+            border-radius: 12px 12px 0 0;
+            padding: 10px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 -4px 32px rgba(0, 0, 0, 0.4);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 10;
+            color: white;
+            font-size: 13px;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        #bottom-info-menu.collapsed {
+            transform: translate(-50%, calc(50% + 15px));
+        }
+
+        #bottom-info-menu.collapsed:hover {
+            transform: translate(-50%, calc(50%));
+            cursor: pointer;
+        }
+
+        #bottom-info-menu.collapsed #btn-bottom-toggle {
+            display: none;
+        }
+
+        .info-content {
+            display: flex;
+            flex-direction: row;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .info-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .info-header-row {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.85);
+            font-weight: 600;
+            gap: 15px;
+        }
+
+        #spider-hunger-bar {
+            font-family: monospace;
+            font-size: 15px;
+            letter-spacing: 1px;
+            color: #ff4757;
+            font-weight: bold;
         }
 
         .menu-item {
@@ -116,6 +185,7 @@
         #btn-toggle {
             height: 25px;
             font-size: 16px;
+            align-self: center;
         }
 
         #btn-left-toggle {
@@ -125,9 +195,16 @@
             align-self: center;
         }
 
+        #btn-bottom-toggle {
+            height: 25px;
+            font-size: 16px;
+            width: 50px;
+            align-self: center;
+        }
+
         #btn-exit-cam {
             position: absolute;
-            bottom: 30px;
+            bottom: 110px;
             left: 50%;
             transform: translateX(-50%);
             padding: 12px 24px;
@@ -149,11 +226,43 @@
             transform: translateX(-50%) scale(1.05);
         }
 
-        /* Day/Night Time Slider Container Style */
-        #time-control-panel {
+        #feed-menu {
             position: absolute;
-            bottom: 30px;
-            left: 100px;
+            top: 20px;
+            right: 85px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            padding: 12px;
+            border-radius: 12px;
+            display: none;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 100;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .feed-option-btn {
+            padding: 8px 14px;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.2s;
+        }
+
+        .feed-option-btn:hover {
+            background: #ff3366;
+        }
+
+        #time-control-panel {
+            position: fixed;
             background: rgba(0, 0, 0, 0.75);
             backdrop-filter: blur(8px);
             padding: 12px 18px;
@@ -161,7 +270,7 @@
             display: none;
             flex-direction: column;
             gap: 6px;
-            z-index: 100;
+            z-index: 1000;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
             border: 1px solid rgba(255, 255, 255, 0.15);
             color: white;
@@ -186,14 +295,18 @@
 <body>
     <button id="btn-exit-cam">Exit Camera Mode</button>
 
-    <!-- Time Slider Control Panel Overlay -->
+    <div id="feed-menu">
+        <button class="feed-option-btn" id="btn-feed-insect">🐛 Give Insect</button>
+        <button class="feed-option-btn" id="btn-feed-fruit">🍉 Give Fruit</button>
+    </div>
+
     <div id="time-control-panel">
         <label><span>Time of Day</span><span id="time-text">12:00 PM</span></label>
         <input type="range" id="time-slider" min="0" max="24" step="0.1" value="12">
     </div>
 
     <div id="left-sidebar">
-        <button id="btn-left-toggle" class="tool-btn" title="Toggle Info Menu">◀</button>
+        <button id="btn-left-toggle" class="tool-btn" title="Toggle Setting Menu">◀</button>
         <div class="menu-item">
             <button id="btn-dance" class="tool-btn" title="Force Dance">💃</button>
             <span class="btn-label">Dance</span>
@@ -210,7 +323,6 @@
             <button id="btn-fpv-cam" class="tool-btn" title="First Person Cam">🕷️</button>
             <span class="btn-label">Spider View</span>
         </div>
-        <!-- New Day/Night Lighting Menu Item -->
         <div class="menu-item">
             <button id="btn-time-system" class="tool-btn" title="Day/Night System">🌙</button>
             <span class="btn-label">Time</span>
@@ -218,7 +330,7 @@
     </div>
 
     <div id="sidebar">
-        <button id="btn-toggle" class="tool-btn" title="Collapse Menu">▶</button>
+        <button id="btn-toggle" class="tool-btn" title="Toggle Tool Menu">▶</button>
         <div class="menu-item">
             <button id="btn-fullscreen" class="tool-btn" title="Toggle Fullscreen">⛶</button>
             <span class="btn-label">Full</span>
@@ -230,6 +342,30 @@
         <div class="menu-item">
             <button id="btn-grab" class="tool-btn" title="Grab Tool">✊</button>
             <span class="btn-label">Grab</span>
+        </div>
+        <div class="menu-item">
+            <button id="btn-brush" class="tool-btn" title="Brush Tool">🧹</button>
+            <span class="btn-label">Brush</span>
+        </div>
+        <div class="menu-item">
+            <button id="btn-feed" class="tool-btn" title="Feeding Menu">🍖</button>
+            <span class="btn-label">Feed</span>
+        </div>
+    </div>
+
+    <div id="bottom-info-menu">
+        <button id="btn-bottom-toggle" class="tool-btn" title="Toggle Information Menu">▼</button>
+        <div class="info-content">
+            <span id="spider-emotion-status">🕷️ Active (Neutral)</span>
+            <span>•</span>
+            <div class="info-section">
+                <div class="info-header-row">
+                    <span>Hungry</span>
+                    <span id="hunger-timer-display" style="color: #ffaa00; font-family: monospace;">00:20</span>
+                    <span id="spider-hunger-text">10 / 10</span>
+                </div>
+                <div id="spider-hunger-bar">||||||||||</div>
+            </div>
         </div>
     </div>
 
@@ -246,7 +382,6 @@
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-        // ===== 0. Web Audio API Setup for Sound Effects =====
         let audioCtx = null;
 
         function initAudio() {
@@ -261,20 +396,15 @@
         function playSpiderKickSound() {
             initAudio();
             if (!audioCtx) return;
-
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
-
             osc.type = 'triangle';
             osc.frequency.setValueAtTime(220, audioCtx.currentTime);
             osc.frequency.exponentialRampToValueAtTime(60, audioCtx.currentTime + 0.15);
-
             gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
             gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
-
             osc.connect(gain);
             gain.connect(audioCtx.destination);
-
             osc.start();
             osc.stop(audioCtx.currentTime + 0.15);
         }
@@ -282,21 +412,16 @@
         function playBounceSound(intensity = 1.0) {
             initAudio();
             if (!audioCtx) return;
-
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
-
             osc.type = 'sine';
             const baseFreq = 120 * Math.min(Math.max(intensity, 0.2), 2.0);
             osc.frequency.setValueAtTime(baseFreq, audioCtx.currentTime);
             osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.1);
-
             gain.gain.setValueAtTime(0.2 * Math.min(intensity, 1.0), audioCtx.currentTime);
             gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-
             osc.connect(gain);
             gain.connect(audioCtx.destination);
-
             osc.start();
             osc.stop(audioCtx.currentTime + 0.1);
         }
@@ -304,25 +429,19 @@
         function playClickSound() {
             initAudio();
             if (!audioCtx) return;
-
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
-
             osc.type = 'sine';
             osc.frequency.setValueAtTime(600, audioCtx.currentTime);
             osc.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + 0.05);
-
             gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
             gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
-
             osc.connect(gain);
             gain.connect(audioCtx.destination);
-
             osc.start();
             osc.stop(audioCtx.currentTime + 0.05);
         }
 
-        // ===== 1. Scene Setup =====
         const scene = new THREE.Scene();
         scene.background = new THREE.Color('#222222');
 
@@ -335,7 +454,6 @@
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         document.body.appendChild(renderer.domElement);
 
-        // ===== 2. Lighting =====
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
         scene.add(ambientLight);
 
@@ -353,7 +471,6 @@
         dirLight.shadow.camera.far = 50;
         scene.add(dirLight);
 
-        // ===== 3. Glass Terrarium =====
         const boxSize = 20;
         const glassGeometry = new THREE.BoxGeometry(boxSize, boxSize, boxSize);
         const glassMaterial = new THREE.MeshStandardMaterial({
@@ -391,19 +508,16 @@
             const hR = getTerrainHeight(x + eps, z);
             const hD = getTerrainHeight(x, z - eps);
             const hU = getTerrainHeight(x, z + eps);
-
             const normal = new THREE.Vector3(hL - hR, 2.0 * eps, hD - hU);
             normal.normalize();
             return normal;
         }
 
-        // --- Enhanced Soil Texture with Organic Specks & Pebble Variations ---
         function createSoilTexture() {
             const canvas = document.createElement('canvas');
             canvas.width = 512;
             canvas.height = 512;
             const ctx = canvas.getContext('2d');
-
             ctx.fillStyle = '#24170e';
             ctx.fillRect(0, 0, 512, 512);
 
@@ -411,18 +525,11 @@
                 const x = Math.random() * 512;
                 const y = Math.random() * 512;
                 const radius = Math.random() * 2.2;
-
                 const shade = Math.random();
-                if (shade < 0.5) {
-                    ctx.fillStyle = 'rgba(30, 18, 8, 0.5)';
-                } else if (shade < 0.8) {
-                    ctx.fillStyle = 'rgba(75, 50, 28, 0.45)';
-                } else if (shade < 0.95) {
-                    ctx.fillStyle = 'rgba(115, 85, 55, 0.35)';
-                } else {
-                    ctx.fillStyle = 'rgba(140, 120, 100, 0.4)';
-                }
-
+                if (shade < 0.5) ctx.fillStyle = 'rgba(30, 18, 8, 0.5)';
+                else if (shade < 0.8) ctx.fillStyle = 'rgba(75, 50, 28, 0.45)';
+                else if (shade < 0.95) ctx.fillStyle = 'rgba(115, 85, 55, 0.35)';
+                else ctx.fillStyle = 'rgba(140, 120, 100, 0.4)';
                 ctx.beginPath();
                 ctx.arc(x, y, radius, 0, Math.PI * 2);
                 ctx.fill();
@@ -437,7 +544,6 @@
 
         const floorGeo = new THREE.PlaneGeometry(boxSize, boxSize, 48, 48);
         const posAttribute = floorGeo.attributes.position;
-
         for (let i = 0; i < posAttribute.count; i++) {
             const vx = posAttribute.getX(i);
             const vy = posAttribute.getY(i);
@@ -456,7 +562,6 @@
         floor.receiveShadow = true;
         scene.add(floor);
 
-        // --- Enhanced Animated Water Layer ---
         const waterLevel = -0.25;
         const waterGeo = new THREE.PlaneGeometry(boxSize - 1, boxSize - 1, 32, 32);
         const waterMat = new THREE.MeshStandardMaterial({
@@ -490,7 +595,34 @@
             }
         }
 
-        // ===== 4. Toy Ball & Enhanced Physics Parameters =====
+        const activePopups = [];
+
+        function createFoodPopup(pos, points) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 128;
+            canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, 128, 64);
+            ctx.font = 'bold 36px sans-serif';
+            ctx.fillStyle = points >= 3 ? '#ff3366' : '#ffd700';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('+' + points, 64, 32);
+
+            const texture = new THREE.CanvasTexture(canvas);
+            const spriteMat = new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false });
+            const sprite = new THREE.Sprite(spriteMat);
+            sprite.position.copy(pos).add(new THREE.Vector3(0, 2.0, 0));
+            sprite.scale.set(1.5, 0.75, 1);
+            scene.add(sprite);
+
+            activePopups.push({
+                sprite: sprite,
+                life: 1.0,
+                velocity: new THREE.Vector3(0, 1.2, 0)
+            });
+        }
+
         const ballRadius = 1;
         const ballGeo = new THREE.SphereGeometry(ballRadius, 16, 16);
         const ballMat = new THREE.MeshStandardMaterial({ color: 0xff3366, roughness: 0.4 });
@@ -510,7 +642,380 @@
         const ballOriginalPos = new THREE.Vector3();
         let ballWasInWater = false;
 
-        // ===== 5. SPIDER MODEL =====
+        let activeInsect = null;
+        let spiderHungryLevel = 5;
+        let hungerTimerSeconds = 10;
+        const foodGroup = new THREE.Group();
+        scene.add(foodGroup);
+        let targetFoodPiece = null;
+
+        let isEating = false;
+        let eatingTimer = 0;
+        let foodBeingEaten = null;
+
+        // Web shooting & pulling state variables
+        let isShootingWeb = false;
+        let webTargetFood = null;
+        let webLineMesh = null;
+        const webLineMaterial = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.8 });
+
+        const landedWebs = [];
+
+        // Generate a realistic spider web texture (matching the shape of the reference image)
+        function createWebTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+
+            const cx = 256;
+            const cy = 256;
+            const maxRadius = 240;
+
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)'; // White web for visibility in the dark
+            ctx.lineWidth = 5;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            const numRadials = 8;
+            const numSpirals = 5;
+
+            // Draw straight radial threads
+            ctx.beginPath();
+            for (let i = 0; i < numRadials; i++) {
+                const angle = (i / numRadials) * Math.PI * 2;
+                ctx.moveTo(cx, cy);
+                ctx.lineTo(cx + Math.cos(angle) * maxRadius, cy + Math.sin(angle) * maxRadius);
+            }
+            ctx.stroke();
+
+            // Draw spiraling threads with sagging curves
+            for (let j = 1; j <= numSpirals; j++) {
+                const r = (j / numSpirals) * (maxRadius * 0.95);
+                ctx.beginPath();
+                for (let i = 0; i <= numRadials; i++) {
+                    const angle = (i / numRadials) * Math.PI * 2;
+                    const nextAngle = ((i + 1) / numRadials) * Math.PI * 2;
+
+                    const x1 = cx + Math.cos(angle) * r;
+                    const y1 = cy + Math.sin(angle) * r;
+                    const x2 = cx + Math.cos(nextAngle) * r;
+                    const y2 = cy + Math.sin(nextAngle) * r;
+
+                    if (i === 0) ctx.moveTo(x1, y1);
+
+                    if (i < numRadials) {
+                        // Sag factor pulls the curve slightly inward toward the center
+                        const sagFactor = 0.85;
+                        const midAngle = (angle + nextAngle) / 2;
+                        const midX = cx + Math.cos(midAngle) * (r * sagFactor);
+                        const midY = cy + Math.sin(midAngle) * (r * sagFactor);
+
+                        ctx.quadraticCurveTo(midX, midY, x2, y2);
+                    }
+                }
+                ctx.stroke();
+            }
+
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        // Realistic web projectile mesh
+        let webProjectileMesh = null;
+        const webProjGeo = new THREE.PlaneGeometry(3.0, 3.0);
+        const webProjMat = new THREE.MeshBasicMaterial({
+            map: createWebTexture(),
+            transparent: true,
+            side: THREE.DoubleSide,
+            depthWrite: false
+        });
+
+        let webProjectilePos = new THREE.Vector3();
+        let webProjectileVel = new THREE.Vector3();
+        let webState = 'idle'; // 'idle', 'shooting', 'pulling'
+        let webShootCooldown = 0; // Web shooting cooldown tracker
+
+        // ---- RANDOM WEB SHOOT STATE ----
+        let isRandomWebShot = false; // true when shooting at a random point (no food target)
+        const webTargetPos = new THREE.Vector3(); // target position for random web shots
+        // ---------------------------------
+
+        // Tether / String / Drag / Swing keyboard state flags
+        let isSwingActive = false;
+        let isDragActive = false;
+
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'ArrowRight' || e.code === 'KeyD') {
+                isSwingActive = true;
+            }
+            if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
+                isDragActive = true;
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.code === 'ArrowRight' || e.code === 'KeyD') {
+                isSwingActive = false;
+            }
+            if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
+                isDragActive = false;
+            }
+        });
+
+        let holdingFoodType = null;
+        let ghostFoodMesh = null;
+
+        let isChasingBall = false;
+        let happyTimer = 0;
+
+        let spiderEmotion = 'neutral';
+        const emotionParticles = [];
+
+        function updateEmotionStatusDisplay() {
+            const statusEl = document.getElementById('spider-emotion-status');
+            if (!statusEl) return;
+            if (happyTimer > 0) {
+                spiderEmotion = 'happy';
+            } else if (spiderHungryLevel <= 3) {
+                spiderEmotion = spiderHungryLevel <= 1 ? 'annoyed' : 'sad';
+            } else if (isEating || isShootingWeb) {
+                spiderEmotion = 'happy';
+            } else {
+                spiderEmotion = 'neutral';
+            }
+
+            if (spiderEmotion === 'happy') {
+                statusEl.textContent = '🕷️ Happy 🥰';
+                statusEl.style.color = '#ff6b81';
+            } else if (spiderEmotion === 'sad') {
+                statusEl.textContent = '🕷️ Hungry & Sad 💧';
+                statusEl.style.color = '#70a1ff';
+            } else if (spiderEmotion === 'annoyed') {
+                statusEl.textContent = '🕷️ Starving & Annoyed 💢';
+                statusEl.style.color = '#ff4757';
+            } else {
+                statusEl.textContent = '🕷️ Active (Neutral)';
+                statusEl.style.color = 'white';
+            }
+        }
+
+        function spawnEmotionParticle() {
+            if (spiderEmotion === 'neutral') return;
+
+            const canvas = document.createElement('canvas');
+            canvas.width = 128;
+            canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, 128, 128);
+            ctx.font = 'bold 52px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            let symbol = '';
+            if (spiderEmotion === 'happy') {
+                symbol = '♥';
+                ctx.fillStyle = '#ff3366';
+            } else if (spiderEmotion === 'sad') {
+                const sadSymbols = ['#', '?', '...', '-_-', '~'];
+                symbol = sadSymbols[Math.floor(Math.random() * sadSymbols.length)];
+                ctx.fillStyle = '#70a1ff';
+            } else if (spiderEmotion === 'annoyed') {
+                const symbolPool = ['#', '&', '!', '?', '#!?', '&?!', '!?#', '?!'];
+                const count = Math.floor(Math.random() * 2) + 1;
+                symbol = '';
+                for (let i = 0; i < count; i++) {
+                    symbol += symbolPool[Math.floor(Math.random() * symbolPool.length)];
+                }
+                ctx.fillStyle = '#ff4757';
+            }
+
+            ctx.fillText(symbol, 64, 64);
+
+            const texture = new THREE.CanvasTexture(canvas);
+            const spriteMat = new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false });
+            const sprite = new THREE.Sprite(spriteMat);
+
+            const offset = new THREE.Vector3((Math.random() - 0.5) * 0.8, 2.2 + Math.random() * 0.5, (Math.random() - 0.5) * 0.8);
+            sprite.position.copy(spiderGroup.position).add(offset);
+            sprite.scale.set(0.8, 0.8, 0.8);
+            scene.add(sprite);
+
+            emotionParticles.push({
+                sprite: sprite,
+                life: 1.0,
+                velocity: new THREE.Vector3((Math.random() - 0.5) * 0.5, 1.0 + Math.random() * 0.5, (Math.random() - 0.5) * 0.5)
+            });
+        }
+
+        function updateSpiderHungerDisplay() {
+            const level = Math.max(0, Math.min(10, spiderHungryLevel));
+            const bar = document.getElementById('spider-hunger-bar');
+            const text = document.getElementById('spider-hunger-text');
+            const timerDisplay = document.getElementById('hunger-timer-display');
+
+            if (bar && text) {
+                const activePipes = '|'.repeat(level);
+                const emptyPipes = '-'.repeat(10 - level);
+                bar.textContent = activePipes + emptyPipes;
+                text.textContent = `${level} / 10`;
+            }
+
+            if (timerDisplay) {
+                const mins = Math.floor(hungerTimerSeconds / 60);
+                const secs = hungerTimerSeconds % 60;
+                timerDisplay.textContent = `${mins < 10 ? '0' : ''}${mins}:${secs < 10 ? '0' : ''}${secs}`;
+            }
+            updateEmotionStatusDisplay();
+        }
+
+        setInterval(() => {
+            if (spiderHungryLevel > 0) {
+                hungerTimerSeconds--;
+                if (hungerTimerSeconds <= 0) {
+                    spiderHungryLevel--;
+                    hungerTimerSeconds = 15;
+                }
+                updateSpiderHungerDisplay();
+            } else {
+                hungerTimerSeconds = 0;
+                updateSpiderHungerDisplay();
+            }
+
+            if (spiderEmotion === 'sad' || spiderEmotion === 'annoyed') {
+                spawnEmotionParticle();
+            }
+        }, 1000);
+
+        function createGhostFood(type) {
+            if (ghostFoodMesh) scene.remove(ghostFoodMesh);
+            if (type === 'insect') {
+                const group = new THREE.Group();
+                const bodyMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.5, metalness: 0.2, transparent: true, opacity: 0.7 });
+                const wingMat = new THREE.MeshStandardMaterial({ color: 0xccffff, transparent: true, opacity: 0.4, side: THREE.DoubleSide });
+
+                const abdomen = new THREE.Mesh(new THREE.CapsuleGeometry(0.2, 0.4, 4, 8), bodyMat);
+                abdomen.rotation.x = Math.PI / 2;
+                abdomen.position.z = -0.2;
+                group.add(abdomen);
+
+                const thorax = new THREE.Mesh(new THREE.SphereGeometry(0.2, 8, 8), bodyMat);
+                thorax.position.z = 0.1;
+                group.add(thorax);
+
+                const head = new THREE.Mesh(new THREE.SphereGeometry(0.15, 8, 8), bodyMat);
+                head.position.z = 0.35;
+                group.add(head);
+
+                const wingGeo = new THREE.BoxGeometry(0.6, 0.02, 0.25);
+                const leftWing = new THREE.Mesh(wingGeo, wingMat);
+                leftWing.position.set(0.35, 0.15, 0.0);
+                group.add(leftWing);
+
+                const rightWing = new THREE.Mesh(wingGeo, wingMat);
+                rightWing.position.set(-0.35, 0.15, 0.0);
+                group.add(rightWing);
+
+                ghostFoodMesh = group;
+            } else if (type === 'fruit') {
+                const group = new THREE.Group();
+                const fruitColors = [0xff3344, 0xffaa00, 0x44ff44];
+                for (let i = 0; i < 4; i++) {
+                    const diceGeo = new THREE.BoxGeometry(0.3, 0.25, 0.3);
+                    const diceMat = new THREE.MeshStandardMaterial({ color: fruitColors[i % fruitColors.length], roughness: 0.5, transparent: true, opacity: 0.7 });
+                    const piece = new THREE.Mesh(diceGeo, diceMat);
+                    piece.position.set((Math.random() - 0.5) * 0.5, 0, (Math.random() - 0.5) * 0.5);
+                    group.add(piece);
+                }
+                ghostFoodMesh = group;
+            }
+            scene.add(ghostFoodMesh);
+        }
+
+        function spawnInsectAt(pos) {
+            const insectGroup = new THREE.Group();
+            const bodyMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.5, metalness: 0.2 });
+            const wingMat = new THREE.MeshStandardMaterial({ color: 0xccffff, transparent: true, opacity: 0.4, side: THREE.DoubleSide });
+
+            const abdomen = new THREE.Mesh(new THREE.CapsuleGeometry(0.2, 0.4, 4, 8), bodyMat);
+            abdomen.rotation.x = Math.PI / 2;
+            abdomen.position.z = -0.2;
+            insectGroup.add(abdomen);
+
+            const thorax = new THREE.Mesh(new THREE.SphereGeometry(0.2, 8, 8), bodyMat);
+            thorax.position.z = 0.1;
+            insectGroup.add(thorax);
+
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.15, 8, 8), bodyMat);
+            head.position.z = 0.35;
+            insectGroup.add(head);
+
+            const wingGeo = new THREE.BoxGeometry(0.6, 0.02, 0.25);
+            const leftWing = new THREE.Mesh(wingGeo, wingMat);
+            leftWing.position.set(0.35, 0.15, 0.0);
+            insectGroup.add(leftWing);
+
+            const rightWing = new THREE.Mesh(wingGeo, wingMat);
+            rightWing.position.set(-0.35, 0.15, 0.0);
+            insectGroup.add(rightWing);
+
+            insectGroup.position.set(pos.x, 3, pos.z);
+            insectGroup.castShadow = true;
+
+            insectGroup.userData = {
+                velocity: new THREE.Vector3((Math.random() - 0.5) * 4, 3, (Math.random() - 0.5) * 4),
+                radius: 0.4,
+                isInsect: true,
+                wasInWater: false,
+                isGrabbedReleased: false,
+                leftWing: leftWing,
+                rightWing: rightWing,
+                flightTimer: 0,
+                state: 'flying'
+            };
+
+            foodGroup.add(insectGroup);
+            activeInsect = insectGroup;
+
+            if (activeTool === 'brush') {
+                addHighlightToObject(insectGroup);
+            }
+        }
+
+        function spawnFruitDiceAt(pos) {
+            const fruitColors = [0xff3344, 0xffaa00, 0x44ff44];
+            const diceCount = 3;
+            for (let i = 0; i < diceCount; i++) {
+                const scaleX = 0.3 + Math.random() * 0.3;
+                const scaleY = 0.25 + Math.random() * 0.25;
+                const scaleZ = 0.3 + Math.random() * 0.3;
+                const diceGeo = new THREE.BoxGeometry(scaleX, scaleY, scaleZ);
+                const diceMat = new THREE.MeshStandardMaterial({
+                    color: fruitColors[Math.floor(Math.random() * fruitColors.length)],
+                    roughness: 0.5
+                });
+                const dicePiece = new THREE.Mesh(diceGeo, diceMat);
+
+                const dropX = pos.x + (Math.random() - 0.5) * 2;
+                const dropZ = pos.z + (Math.random() - 0.5) * 2;
+
+                dicePiece.position.set(dropX, 5 + Math.random() * 3, dropZ);
+                dicePiece.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+                dicePiece.castShadow = true;
+                dicePiece.userData = {
+                    velocity: new THREE.Vector3((Math.random() - 0.5) * 3, 0, (Math.random() - 0.5) * 3),
+                    radius: Math.max(scaleX, scaleY, scaleZ) * 0.7,
+                    isInsect: false,
+                    wasInWater: false,
+                    isGrabbedReleased: false
+                };
+                foodGroup.add(dicePiece);
+
+                if (activeTool === 'brush') {
+                    addHighlightToObject(dicePiece);
+                }
+            }
+        }
+
         const spiderGroup = new THREE.Group();
         const spiderBodyContainer = new THREE.Group();
         spiderGroup.add(spiderBodyContainer);
@@ -627,7 +1132,6 @@
         crestFront.position.set(0, 1.9, 0.6);
         spiderBodyContainer.add(crestFront);
 
-        // --- Leg Thickness Configuration ---
         const legThickness = 0.32;
         const spiderLegs = [];
 
@@ -698,7 +1202,6 @@
 
         scene.add(spiderGroup);
 
-        // ===== 6. Camera Controls =====
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.target.set(0, boxSize / 2, 0);
         controls.enableDamping = true;
@@ -746,7 +1249,6 @@
                 cameraMode = 'fpv';
                 btnFpvCam.classList.add('active');
                 btnExitCam.style.display = 'block';
-
                 controls.enabled = false;
                 spiderGroup.updateMatrixWorld(true);
 
@@ -766,7 +1268,6 @@
             resetCameraModes();
         });
 
-        // ===== 7. UI & Tool Selection System =====
         let targetPosition = new THREE.Vector3();
         let isJumping = false;
         let jumpProgress = 0;
@@ -781,6 +1282,7 @@
 
         let activeTool = null;
         let grabbedObject = null;
+        let grabbedFoodPiece = null;
         let grabPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
         let intersectionPoint = new THREE.Vector3();
         let activePointerId = null;
@@ -789,29 +1291,169 @@
         const btnFullscreen = document.getElementById('btn-fullscreen');
         const btnFinger = document.getElementById('btn-finger');
         const btnGrab = document.getElementById('btn-grab');
+        const btnBrush = document.getElementById('btn-brush');
         const btnToggle = document.getElementById('btn-toggle');
+        const btnFeed = document.getElementById('btn-feed');
+        const feedMenu = document.getElementById('feed-menu');
+        const btnFeedInsect = document.getElementById('btn-feed-insect');
+        const btnFeedFruit = document.getElementById('btn-feed-fruit');
 
         const leftSidebar = document.getElementById('left-sidebar');
         const btnLeftToggle = document.getElementById('btn-left-toggle');
         const btnDance = document.getElementById('btn-dance');
         const btnPlayBall = document.getElementById('btn-play-ball');
-        
-        // Day/Night System elements
+
+        const bottomInfoMenu = document.getElementById('bottom-info-menu');
+        const btnBottomToggle = document.getElementById('btn-bottom-toggle');
+
         const btnTimeSystem = document.getElementById('btn-time-system');
         const timeControlPanel = document.getElementById('time-control-panel');
         const timeSlider = document.getElementById('time-slider');
         const timeText = document.getElementById('time-text');
 
-        btnTimeSystem.addEventListener('click', () => {
+        // ===== 高亮管理（X光效果） - 修复轮廓位置偏移 + 透视 =====
+        function addHighlightToObject(obj) {
+            if (!obj) return;
+
+            if (obj.isGroup) {
+                obj.children.forEach(child => {
+                    if (child.isMesh) {
+                        addHighlightToObject(child);
+                    } else if (child.isGroup) {
+                        addHighlightToObject(child);
+                    }
+                });
+                return;
+            }
+
+            if (obj.isMesh) {
+                if (obj.userData.highlight) return;
+                try {
+                    const edges = new THREE.EdgesGeometry(obj.geometry);
+                    const material = new THREE.LineBasicMaterial({
+                        color: 0x00ffff,
+                        transparent: true,
+                        opacity: 0.7,
+                        depthTest: false,
+                    });
+                    const wireframe = new THREE.LineSegments(edges, material);
+                    wireframe.position.set(0, 0, 0);
+                    wireframe.renderOrder = 999;
+                    obj.add(wireframe);
+                    obj.userData.highlight = wireframe;
+                } catch (e) {
+                    console.warn('Could not create highlight for object:', obj);
+                }
+                return;
+            }
+        }
+
+        function removeHighlightFromObject(obj) {
+            if (!obj) return;
+
+            if (obj.isGroup) {
+                obj.children.forEach(child => {
+                    if (child.isMesh || child.isGroup) {
+                        removeHighlightFromObject(child);
+                    }
+                });
+                return;
+            }
+
+            if (obj.isMesh && obj.userData.highlight) {
+                const h = obj.userData.highlight;
+                obj.remove(h);
+                if (h.geometry) h.geometry.dispose();
+                if (h.material) h.material.dispose();
+                obj.userData.highlight = null;
+            }
+        }
+
+        function updateAllHighlights(active) {
+            foodGroup.children.forEach(child => {
+                removeHighlightFromObject(child);
+            });
+            landedWebs.forEach(web => {
+                removeHighlightFromObject(web);
+            });
+
+            if (active) {
+                foodGroup.children.forEach(child => {
+                    addHighlightToObject(child);
+                });
+                landedWebs.forEach(web => {
+                    addHighlightToObject(web);
+                });
+            }
+        }
+
+        function deactivateBrush() {
+            if (activeTool === 'brush') {
+                activeTool = null;
+                btnBrush.classList.remove('active');
+                updateAllHighlights(false);
+            }
+        }
+
+        btnFeed.addEventListener('click', (e) => {
+            e.stopPropagation();
             playClickSound();
-            const isVisible = timeControlPanel.style.display === 'flex';
-            timeControlPanel.style.display = isVisible ? 'none' : 'flex';
-            btnTimeSystem.classList.toggle('active', !isVisible);
+            deactivateBrush();
+            const isVisible = feedMenu.style.display === 'flex';
+            feedMenu.style.display = isVisible ? 'none' : 'flex';
+            btnFeed.classList.toggle('active', !isVisible);
         });
 
-        // Time of Day updates lighting dynamically based on slider (0 to 24 hours)
+        btnFeedInsect.addEventListener('click', () => {
+            playClickSound();
+            deactivateBrush();
+            feedMenu.style.display = 'none';
+            btnFeed.classList.remove('active');
+            holdingFoodType = 'insect';
+            createGhostFood('insect');
+            controls.enabled = false;
+        });
+
+        btnFeedFruit.addEventListener('click', () => {
+            playClickSound();
+            deactivateBrush();
+            feedMenu.style.display = 'none';
+            btnFeed.classList.remove('active');
+            holdingFoodType = 'fruit';
+            createGhostFood('fruit');
+            controls.enabled = false;
+        });
+
+        btnTimeSystem.addEventListener('click', (e) => {
+            e.stopPropagation();
+            playClickSound();
+
+            const isVisible = timeControlPanel.style.display === 'flex';
+
+            if (isVisible) {
+                timeControlPanel.style.display = 'none';
+                btnTimeSystem.classList.remove('active');
+            } else {
+                const rect = btnTimeSystem.getBoundingClientRect();
+                let left = rect.right + 10;
+                let top = rect.top - 10;
+
+                if (left + 240 > window.innerWidth) {
+                    left = rect.left - 230;
+                }
+                if (top + 140 > window.innerHeight) {
+                    top = window.innerHeight - 140;
+                }
+                if (top < 10) top = 10;
+
+                timeControlPanel.style.left = left + 'px';
+                timeControlPanel.style.top = top + 'px';
+                timeControlPanel.style.display = 'flex';
+                btnTimeSystem.classList.add('active');
+            }
+        });
+
         function updateLightingSystem(hour) {
-            // Format text display (e.g., 03:30 PM)
             const h = Math.floor(hour);
             const m = Math.floor((hour - h) * 60);
             const ampm = h >= 12 ? 'PM' : 'AM';
@@ -819,38 +1461,32 @@
             const displayMin = m < 10 ? '0' + m : m;
             timeText.textContent = `${displayHour}:${displayMin} ${ampm}`;
 
-            // Calculate angle matching 24 hours (0-24 -> 0 to 2*PI)
             const angle = (hour / 24) * Math.PI * 2 - Math.PI / 2;
             const radius = 30;
             dirLight.position.x = Math.cos(angle) * radius;
             dirLight.position.y = Math.sin(angle) * radius;
             dirLight.position.z = 10;
 
-            // Transition colors and intensity based on day/sunset/night states
             let skyColor, bgHex, ambientIntensity, dirIntensity;
 
             if (hour >= 5 && hour < 7) {
-                // Dawn / Sunrise
                 const t = (hour - 5) / 2;
                 skyColor = new THREE.Color().lerpColors(new THREE.Color(0x0b1329), new THREE.Color(0xff8c42), t);
                 bgHex = new THREE.Color().lerpColors(new THREE.Color(0x080c14), new THREE.Color(0x382216), t);
                 ambientIntensity = THREE.MathUtils.lerp(0.1, 0.4, t);
                 dirIntensity = THREE.MathUtils.lerp(0.1, 0.5, t);
             } else if (hour >= 7 && hour < 17) {
-                // Day
                 skyColor = new THREE.Color(0xffffff);
                 bgHex = new THREE.Color(0x222222);
                 ambientIntensity = 0.6;
                 dirIntensity = 0.8;
             } else if (hour >= 17 && hour < 19) {
-                // Sunset / Dusk
                 const t = (hour - 17) / 2;
                 skyColor = new THREE.Color().lerpColors(new THREE.Color(0xffffff), new THREE.Color(0xff4500), t);
                 bgHex = new THREE.Color().lerpColors(new THREE.Color(0x222222), new THREE.Color(0x200c14), t);
                 ambientIntensity = THREE.MathUtils.lerp(0.6, 0.2, t);
                 dirIntensity = THREE.MathUtils.lerp(0.8, 0.3, t);
             } else {
-                // Night
                 skyColor = new THREE.Color(0x446699);
                 bgHex = new THREE.Color(0x080c14);
                 ambientIntensity = 0.15;
@@ -868,26 +1504,19 @@
             updateLightingSystem(parseFloat(e.target.value));
         });
 
-        // Initialize lighting at default 12 PM
         updateLightingSystem(12);
 
         btnFullscreen.addEventListener('click', () => {
             playClickSound();
             if (!document.fullscreenElement) {
                 document.documentElement.requestFullscreen().catch(err => {
-                    console.error(`Error attempting to enable full-screen mode: ${err.message}`);
+                    console.error(`Error attempting full-screen: ${err.message}`);
                 });
                 btnFullscreen.classList.add('active');
             } else {
                 if (document.exitFullscreen) {
                     document.exitFullscreen();
                 }
-                btnFullscreen.classList.remove('active');
-            }
-        });
-
-        document.addEventListener('fullscreenchange', () => {
-            if (!document.fullscreenElement) {
                 btnFullscreen.classList.remove('active');
             }
         });
@@ -922,6 +1551,21 @@
             }
         });
 
+        btnBottomToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            playClickSound();
+            bottomInfoMenu.classList.toggle('collapsed');
+            btnBottomToggle.textContent = bottomInfoMenu.classList.contains('collapsed') ? '▲' : '▼';
+        });
+
+        bottomInfoMenu.addEventListener('click', (e) => {
+            if (bottomInfoMenu.classList.contains('collapsed')) {
+                playClickSound();
+                bottomInfoMenu.classList.remove('collapsed');
+                btnBottomToggle.textContent = '▼';
+            }
+        });
+
         window.addEventListener('pointerdown', (event) => {
             if (!sidebar.classList.contains('collapsed') && !sidebar.contains(event.target)) {
                 playClickSound();
@@ -933,6 +1577,20 @@
                 leftSidebar.classList.add('collapsed');
                 btnLeftToggle.textContent = '▶';
             }
+
+            if (feedMenu.style.display === 'flex' &&
+                !feedMenu.contains(event.target) &&
+                event.target !== btnFeed) {
+                feedMenu.style.display = 'none';
+                btnFeed.classList.remove('active');
+            }
+
+            if (timeControlPanel.style.display === 'flex' &&
+                !timeControlPanel.contains(event.target) &&
+                event.target !== btnTimeSystem) {
+                timeControlPanel.style.display = 'none';
+                btnTimeSystem.classList.remove('active');
+            }
         });
 
         let isFrontLegDancing = false;
@@ -940,36 +1598,32 @@
 
         btnDance.addEventListener('click', () => {
             playClickSound();
-
             isJumping = false;
             trackingCursor = false;
             targetingBall = false;
             playBallRequested = false;
+            isShootingWeb = false;
+            webState = 'idle';
             targetPosition.copy(spiderGroup.position);
 
             isFrontLegDancing = true;
             danceTimer = 0;
             btnDance.classList.add('active');
-            setTimeout(() => {
-                btnDance.classList.remove('active');
-            }, 1000);
+            setTimeout(() => { btnDance.classList.remove('active'); }, 1000);
         });
 
         btnPlayBall.addEventListener('click', () => {
             playClickSound();
-
             isJumping = false;
             trackingCursor = false;
             isFrontLegDancing = false;
+            isShootingWeb = false;
+            webState = 'idle';
             targetingBall = true;
             playBallRequested = true;
-
             spiderSpeed = 0.04 + Math.random() * 0.07;
-
             btnPlayBall.classList.add('active');
-            setTimeout(() => {
-                btnPlayBall.classList.remove('active');
-            }, 1000);
+            setTimeout(() => { btnPlayBall.classList.remove('active'); }, 1000);
         });
 
         btnFinger.addEventListener('click', () => {
@@ -979,11 +1633,12 @@
                 trackingCursor = false;
                 btnFinger.classList.remove('active');
             } else {
+                deactivateBrush();
                 activeTool = 'finger';
                 btnFinger.classList.add('active');
                 btnGrab.classList.remove('active');
             }
-            if (grabbedObject) { grabbedObject = null; if (cameraMode !== 'fpv') controls.enabled = true; }
+            if (grabbedObject) { grabbedObject = null; grabbedFoodPiece = null; if (cameraMode !== 'fpv') controls.enabled = true; }
         });
 
         btnGrab.addEventListener('click', () => {
@@ -992,6 +1647,7 @@
                 activeTool = null;
                 btnGrab.classList.remove('active');
             } else {
+                deactivateBrush();
                 activeTool = 'grab';
                 btnGrab.classList.add('active');
                 btnFinger.classList.remove('active');
@@ -1000,14 +1656,145 @@
             trackingCursor = false;
         });
 
+        btnBrush.addEventListener('click', () => {
+            playClickSound();
+            if (activeTool === 'brush') {
+                activeTool = null;
+                btnBrush.classList.remove('active');
+                updateAllHighlights(false);
+            } else {
+                if (activeTool === 'finger') {
+                    btnFinger.classList.remove('active');
+                    trackingCursor = false;
+                } else if (activeTool === 'grab') {
+                    btnGrab.classList.remove('active');
+                    if (grabbedObject) { grabbedObject = null; grabbedFoodPiece = null; if (cameraMode !== 'fpv') controls.enabled = true; }
+                }
+                activeTool = 'brush';
+                btnBrush.classList.add('active');
+                btnFinger.classList.remove('active');
+                btnGrab.classList.remove('active');
+                if (grabbedObject) { grabbedObject = null; grabbedFoodPiece = null; if (cameraMode !== 'fpv') controls.enabled = true; }
+                if (isHoldingBall) { isHoldingBall = false; if (cameraMode !== 'fpv') controls.enabled = true; }
+                trackingCursor = false;
+                updateAllHighlights(true);
+            }
+        });
+
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
 
+        function cleanWithBrush(event) {
+            if (activeTool !== 'brush') return;
+            if (event.button !== 0 && event.pointerType === 'mouse') return;
+
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+
+            let cleaned = false;
+
+            if (landedWebs.length > 0) {
+                const webIntersects = raycaster.intersectObjects(landedWebs);
+                for (let i = 0; i < webIntersects.length; i++) {
+                    const web = webIntersects[i].object;
+                    removeHighlightFromObject(web);
+                    scene.remove(web);
+                    const idx = landedWebs.indexOf(web);
+                    if (idx !== -1) landedWebs.splice(idx, 1);
+                    cleaned = true;
+                }
+            }
+
+            const foodMeshes = [];
+            foodGroup.children.forEach(child => {
+                child.traverse(node => {
+                    if (node.isMesh) foodMeshes.push(node);
+                });
+            });
+            if (foodMeshes.length > 0) {
+                const foodIntersects = raycaster.intersectObjects(foodMeshes);
+                for (let i = 0; i < foodIntersects.length; i++) {
+                    let rootFood = foodIntersects[i].object;
+                    while (rootFood.parent && rootFood.parent !== foodGroup) {
+                        rootFood = rootFood.parent;
+                    }
+                    if (foodGroup.children.includes(rootFood)) {
+                        if (foodBeingEaten === rootFood) {
+                            foodBeingEaten = null;
+                            isEating = false;
+                            eatingTimer = 0;
+                        }
+                        if (webTargetFood === rootFood) {
+                            webTargetFood = null;
+                            isShootingWeb = false;
+                            webState = 'idle';
+                            if (webLineMesh) {
+                                scene.remove(webLineMesh);
+                                webLineMesh.geometry.dispose();
+                                webLineMesh = null;
+                            }
+                            if (webProjectileMesh) webProjectileMesh.visible = false;
+                        }
+                        if (targetFoodPiece === rootFood) {
+                            targetFoodPiece = null;
+                        }
+                        if (activeInsect === rootFood) {
+                            activeInsect = null;
+                        }
+                        removeHighlightFromObject(rootFood);
+                        foodGroup.remove(rootFood);
+                        cleaned = true;
+                        playClickSound();
+                    }
+                }
+            }
+
+            if (cleaned) {
+                playClickSound();
+            }
+        }
+
         window.addEventListener('pointerdown', (event) => {
+            if (activeTool === 'brush') {
+                cleanWithBrush(event);
+                return;
+            }
+
             if (event.button !== 0 && event.pointerType === 'mouse') return;
             if (event.clientX < 90 && event.clientY < 340) return;
             if (event.clientX > window.innerWidth - 90 && event.clientY < 260) return;
-            if (timeControlPanel.contains(event.target)) return;
+            if (timeControlPanel.contains(event.target) || feedMenu.contains(event.target)) return;
+
+            if (holdingFoodType) {
+                mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+                raycaster.setFromCamera(mouse, camera);
+                cursorPlane.setFromNormalAndCoplanarPoint(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 0));
+
+                if (raycaster.ray.intersectPlane(cursorPlane, cursorWorldPos)) {
+                    playClickSound();
+                    const limit = (boxSize / 2) - 1.5;
+                    const dropX = Math.max(-limit, Math.min(limit, cursorWorldPos.x));
+                    const dropZ = Math.max(-limit, Math.min(limit, cursorWorldPos.z));
+                    const dropPos = new THREE.Vector3(dropX, 0, dropZ);
+
+                    if (holdingFoodType === 'insect') {
+                        spawnInsectAt(dropPos);
+                    } else if (holdingFoodType === 'fruit') {
+                        spawnFruitDiceAt(dropPos);
+                    }
+
+                    if (ghostFoodMesh) {
+                        scene.remove(ghostFoodMesh);
+                        ghostFoodMesh = null;
+                    }
+                    holdingFoodType = null;
+                    if (cameraMode !== 'fpv') controls.enabled = true;
+                }
+                return;
+            }
+
             if (!activeTool) return;
 
             activePointerId = event.pointerId;
@@ -1015,7 +1802,6 @@
 
             mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
             mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-
             raycaster.setFromCamera(mouse, camera);
 
             const spiderMeshes = [];
@@ -1023,6 +1809,11 @@
 
             const spiderIntersect = raycaster.intersectObjects(spiderMeshes);
             const ballIntersect = raycaster.intersectObject(ball);
+
+            let foodIntersect = [];
+            const foodMeshes = [];
+            foodGroup.traverse(child => { if (child.isMesh) foodMeshes.push(child); });
+            foodIntersect = raycaster.intersectObjects(foodMeshes);
 
             if (activeTool === 'finger') {
                 if (spiderIntersect.length > 0) {
@@ -1036,16 +1827,8 @@
                     targetingBall = false;
                     playBallRequested = false;
                     isFrontLegDancing = false;
-
-                    const limit = (boxSize / 2) - 2;
-                    const randomAngle = Math.random() * Math.PI * 2;
-                    const jumpDist = 5 + Math.random() * 4;
-
-                    targetPosition.set(
-                        Math.max(-limit, Math.min(limit, spiderGroup.position.x + Math.cos(randomAngle) * jumpDist)),
-                        0,
-                        Math.max(-limit, Math.min(limit, spiderGroup.position.z + Math.sin(randomAngle) * jumpDist))
-                    );
+                    isShootingWeb = false;
+                    webState = 'idle';
                 } else if (ballIntersect.length > 0) {
                     playClickSound();
                     isHoldingBall = true;
@@ -1054,6 +1837,45 @@
                     ballVelocity.set(0, 0, 0);
                     if (cameraMode !== 'fpv') controls.enabled = false;
                     trackingCursor = false;
+                } else if (foodIntersect.length > 0 && !isEating && !isShootingWeb) {
+                    playClickSound();
+                    let rootFood = foodIntersect[0].object;
+                    while (rootFood.parent && rootFood.parent !== foodGroup) {
+                        rootFood = rootFood.parent;
+                    }
+
+                    if (webShootCooldown <= 0) {
+                        webTargetFood = rootFood;
+                        isShootingWeb = true;
+                        webState = 'shooting';
+                        webShootCooldown = 6.0;
+                        isJumping = false;
+                        isFrontLegDancing = false;
+                        trackingCursor = false;
+                        isRandomWebShot = false;
+
+                        const spiderMouthPos = spiderGroup.position.clone().add(new THREE.Vector3(0, 1.0, 0));
+                        webProjectilePos.copy(spiderMouthPos);
+                        const toTarget = new THREE.Vector3().subVectors(webTargetFood.position, spiderMouthPos);
+                        const distance = toTarget.length();
+                        toTarget.normalize();
+                        webProjectileVel.copy(toTarget).multiplyScalar(Math.min(10 + distance * 0.2, 16));
+                        webProjectileVel.y = 2 + distance * 0.1;
+
+                        if (!webProjectileMesh) {
+                            webProjectileMesh = new THREE.Mesh(webProjGeo, webProjMat);
+                            scene.add(webProjectileMesh);
+                        }
+                        webProjectileMesh.position.copy(webProjectilePos);
+                        webProjectileMesh.visible = true;
+                    } else {
+                        targetFoodPiece = rootFood;
+                        targetPosition.set(rootFood.position.x, 0, rootFood.position.z);
+                        spiderSpeed = 0.08;
+                        isJumping = false;
+                        isFrontLegDancing = false;
+                        trackingCursor = false;
+                    }
                 } else {
                     playClickSound();
                     trackingCursor = true;
@@ -1067,25 +1889,55 @@
                     grabbedObject = 'spider';
                     isJumping = false;
                     isFrontLegDancing = false;
+                    isShootingWeb = false;
+                    webState = 'idle';
                     if (cameraMode !== 'fpv') controls.enabled = false;
                 } else if (ballIntersect.length > 0) {
                     grabbedObject = 'ball';
                     ballVelocity.set(0, 0, 0);
+                    if (cameraMode !== 'fpv') controls.enabled = false;
+                } else if (foodIntersect.length > 0) {
+                    grabbedObject = 'food';
+                    let rootFood = foodIntersect[0].object;
+                    while (rootFood.parent && rootFood.parent !== foodGroup) {
+                        rootFood = rootFood.parent;
+                    }
+                    grabbedFoodPiece = rootFood;
+                    if (grabbedFoodPiece.userData) {
+                        grabbedFoodPiece.userData.velocity.set(0, 0, 0);
+                        grabbedFoodPiece.userData.isGrabbedReleased = true;
+                    }
                     if (cameraMode !== 'fpv') controls.enabled = false;
                 }
             }
         });
 
         window.addEventListener('pointermove', (event) => {
+            if (activeTool === 'brush') return;
+
             if (activePointerId !== null && event.pointerId !== activePointerId) return;
 
             mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
             mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
+            if (holdingFoodType && ghostFoodMesh && event.pointerType === 'mouse') {
+                raycaster.setFromCamera(mouse, camera);
+                cursorPlane.setFromNormalAndCoplanarPoint(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 0));
+                if (raycaster.ray.intersectPlane(cursorPlane, cursorWorldPos)) {
+                    const limit = (boxSize / 2) - 1.5;
+                    const px = Math.max(-limit, Math.min(limit, cursorWorldPos.x));
+                    const pz = Math.max(-limit, Math.min(limit, cursorWorldPos.z));
+                    ghostFoodMesh.position.set(px, 3, pz);
+                }
+            }
+
             if (activeTool === 'grab' && grabbedObject) {
                 raycaster.setFromCamera(mouse, camera);
+                let currentY = 0;
+                if (grabbedObject === 'spider') currentY = spiderGroup.position.y;
+                else if (grabbedObject === 'ball') currentY = ball.position.y;
+                else if (grabbedObject === 'food' && grabbedFoodPiece) currentY = grabbedFoodPiece.position.y;
 
-                const currentY = grabbedObject === 'spider' ? spiderGroup.position.y : ball.position.y;
                 grabPlane.setFromNormalAndCoplanarPoint(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, currentY, 0));
 
                 if (raycaster.ray.intersectPlane(grabPlane, intersectionPoint)) {
@@ -1101,6 +1953,10 @@
                         ball.position.x = intersectionPoint.x;
                         ball.position.z = intersectionPoint.z;
                         ball.position.y = Math.max(getTerrainHeight(intersectionPoint.x, intersectionPoint.z) + ballRadius + 3, intersectionPoint.y);
+                    } else if (grabbedObject === 'food' && grabbedFoodPiece) {
+                        grabbedFoodPiece.position.x = intersectionPoint.x;
+                        grabbedFoodPiece.position.z = intersectionPoint.z;
+                        grabbedFoodPiece.position.y = Math.max(getTerrainHeight(intersectionPoint.x, intersectionPoint.z) + (grabbedFoodPiece.userData.radius || 0.3) + 3, intersectionPoint.y);
                     }
                 }
             } else if (activeTool === 'finger' && trackingCursor) {
@@ -1130,14 +1986,25 @@
 
                 const maxHoldTime = 3.0;
                 const effectiveTime = Math.min(chargeTime, maxHoldTime);
-                const speedMultiplier = 8 + effectiveTime * 15;
+                const speedMultiplier = 6 + effectiveTime * 10;
 
                 ball.position.copy(ballOriginalPos);
                 ballVelocity.copy(camDir).multiplyScalar(speedMultiplier);
-                ballVelocity.y = 6 + effectiveTime * 6;
-                playBounceSound(1.5);
+                ballVelocity.y = 4 + effectiveTime * 4;
+                playBounceSound(1.2);
+
+                isChasingBall = true;
+                happyTimer = 4.0;
+                targetingBall = true;
+                spiderSpeed = 0.08;
+                isFrontLegDancing = false;
+                isJumping = false;
+                isShootingWeb = false;
+                webState = 'idle';
+                spawnEmotionParticle();
             } else if (activeTool === 'grab' && grabbedObject) {
                 grabbedObject = null;
+                grabbedFoodPiece = null;
                 if (cameraMode !== 'fpv') controls.enabled = true;
                 pickNewTarget();
             }
@@ -1150,8 +2017,11 @@
         window.addEventListener('pointercancel', handlePointerUpOrCancel);
 
         function pickNewTarget() {
+            if (isEating || isShootingWeb) return;
             if (activeTool === 'finger' && trackingCursor) return;
             if (isFrontLegDancing) return;
+            if (isChasingBall) return;
+            if (foodGroup.children.length > 0 && spiderHungryLevel < 10) return;
 
             const limit = (boxSize / 2) - 2;
             spiderSpeed = 0.02 + Math.random() * 0.06;
@@ -1173,8 +2043,8 @@
         }
 
         pickNewTarget();
+        updateSpiderHungerDisplay();
 
-        // ===== 8. Animation Loop =====
         const clock = new THREE.Clock();
         let walkCycle = 0;
         let idleTime = 0;
@@ -1184,19 +2054,43 @@
             const delta = clock.getDelta();
             const elapsedTime = clock.getElapsedTime();
 
-            // --- Animate Water Surface Waves ---
+            if (webShootCooldown > 0) {
+                webShootCooldown -= delta;
+            }
+
+            if (happyTimer > 0) {
+                happyTimer -= delta;
+                if (happyTimer <= 0) {
+                    isChasingBall = false;
+                }
+                updateEmotionStatusDisplay();
+            }
+
+            if (isHoldingBall && activeTool === 'finger') {
+                chargeTime += delta;
+
+                const maxHoldTime = 3.0;
+                const effectiveTime = Math.min(chargeTime, maxHoldTime);
+                const shakeIntensity = effectiveTime * 0.15;
+
+                ball.position.set(
+                    ballOriginalPos.x + (Math.random() - 0.5) * shakeIntensity,
+                    ballOriginalPos.y + (Math.random() - 0.5) * shakeIntensity,
+                    ballOriginalPos.z + (Math.random() - 0.5) * shakeIntensity
+                );
+            }
+
             const waterPosAttr = waterGeo.attributes.position;
             for (let i = 0; i < waterPosAttr.count; i++) {
                 const vx = waterPosAttr.getX(i);
                 const vy = waterPosAttr.getY(i);
                 const waveZ = Math.sin(vx * 1.5 + elapsedTime * 2.5) * Math.cos(vy * 1.5 + elapsedTime * 2.0) * 0.06 +
-                              Math.sin(vx * 3.0 - elapsedTime * 3.5) * 0.02;
+                    Math.sin(vx * 3.0 - elapsedTime * 3.5) * 0.02;
                 waterPosAttr.setZ(i, waveZ);
             }
             waterPosAttr.needsUpdate = true;
             waterGeo.computeVertexNormals();
 
-            // --- Animate Ripples ---
             for (let i = activeRipples.length - 1; i >= 0; i--) {
                 const r = activeRipples[i];
                 r.life -= delta * 1.5;
@@ -1211,25 +2105,42 @@
                 }
             }
 
-            if (isHoldingBall) {
-                chargeTime += delta;
-                const shakeIntensity = Math.min(0.3, 0.05 + chargeTime * 0.05);
-                ball.position.copy(ballOriginalPos).add(new THREE.Vector3(
-                    (Math.random() - 0.5) * shakeIntensity,
-                    (Math.random() - 0.5) * shakeIntensity,
-                    (Math.random() - 0.5) * shakeIntensity
-                ));
-            } else if (grabbedObject === 'ball') {
-                // Held by grab tool
-            } else {
-                const subSteps = 12;
-                const subDelta = delta / subSteps;
+            for (let i = activePopups.length - 1; i >= 0; i--) {
+                const p = activePopups[i];
+                p.life -= delta * 1.2;
+                p.sprite.position.addScaledVector(p.velocity, delta);
+                p.sprite.material.opacity = Math.max(0, p.life);
 
-                for (let step = 0; step < subSteps; step++) {
+                if (p.life <= 0) {
+                    scene.remove(p.sprite);
+                    p.sprite.material.map.dispose();
+                    p.sprite.material.dispose();
+                    activePopups.splice(i, 1);
+                }
+            }
+
+            for (let i = emotionParticles.length - 1; i >= 0; i--) {
+                const ep = emotionParticles[i];
+                ep.life -= delta * 1.2;
+                ep.sprite.position.addScaledVector(ep.velocity, delta);
+                ep.sprite.material.opacity = Math.max(0, ep.life);
+
+                if (ep.life <= 0) {
+                    scene.remove(ep.sprite);
+                    ep.sprite.material.map.dispose();
+                    ep.sprite.material.dispose();
+                    emotionParticles.splice(i, 1);
+                }
+            }
+
+            const subSteps = 12;
+            const subDelta = delta / subSteps;
+
+            for (let step = 0; step < subSteps; step++) {
+                if (!isHoldingBall && grabbedObject !== 'ball') {
                     ballVelocity.y -= gravity * subDelta;
                     ballVelocity.x *= Math.pow(airDrag, subDelta / 0.016);
                     ballVelocity.z *= Math.pow(airDrag, subDelta / 0.016);
-
                     ball.position.addScaledVector(ballVelocity, subDelta);
 
                     const groundH = getTerrainHeight(ball.position.x, ball.position.z);
@@ -1255,7 +2166,7 @@
                             const dot = ballVelocity.dot(terrainNormal);
                             if (dot < 0) {
                                 const impactSpeed = Math.abs(dot);
-                                if (impactSpeed > 0.8 && step === 0) {
+                                if (impactSpeed > 1.5 && step === 0) {
                                     playBounceSound(Math.min(impactSpeed / 10, 1.0));
                                 }
                                 ballVelocity.addScaledVector(terrainNormal, -dot * (1.0 + bounceFactor));
@@ -1273,58 +2184,457 @@
 
                     if (ball.position.y >= ceilingLimit) {
                         ball.position.y = ceilingLimit;
+                        if (step === 0 && ballVelocity.y > 1.0) playBounceSound(0.5);
                         ballVelocity.y *= -bounceFactor;
-                        if (step === 0) playBounceSound(0.5);
                     }
 
                     if (ball.position.x > boxLimit) {
                         ball.position.x = boxLimit;
+                        if (step === 0 && Math.abs(ballVelocity.x) > 1.0) playBounceSound(0.4);
                         ballVelocity.x *= -bounceFactor;
-                        if (step === 0) playBounceSound(0.4);
                     } else if (ball.position.x < -boxLimit) {
                         ball.position.x = -boxLimit;
+                        if (step === 0 && Math.abs(ballVelocity.x) > 1.0) playBounceSound(0.4);
                         ballVelocity.x *= -bounceFactor;
-                        if (step === 0) playBounceSound(0.4);
                     }
                     if (ball.position.z > boxLimit) {
                         ball.position.z = boxLimit;
+                        if (step === 0 && Math.abs(ballVelocity.z) > 1.0) playBounceSound(0.4);
                         ballVelocity.z *= -bounceFactor;
-                        if (step === 0) playBounceSound(0.4);
                     } else if (ball.position.z < -boxLimit) {
                         ball.position.z = -boxLimit;
+                        if (step === 0 && Math.abs(ballVelocity.z) > 1.0) playBounceSound(0.4);
                         ballVelocity.z *= -bounceFactor;
-                        if (step === 0) playBounceSound(0.4);
                     }
                 }
 
-                const horizontalSpeed = Math.sqrt(ballVelocity.x * ballVelocity.x + ballVelocity.z * ballVelocity.z);
-                if (horizontalSpeed > 0.05) {
-                    const rotAxis = new THREE.Vector3(-ballVelocity.z, 0, ballVelocity.x).normalize();
-                    const angularDist = (horizontalSpeed * delta) / ballRadius;
-                    ball.rotateOnWorldAxis(rotAxis, angularDist);
+                let dragMultiplier = isDragActive ? 0.92 : 1.0;
+
+                foodGroup.children.forEach(food => {
+                    if (grabbedObject === 'food' && grabbedFoodPiece === food) return;
+                    if (isShootingWeb && webTargetFood === food && webState === 'pulling') return;
+                    if (!food.userData.velocity) return;
+
+                    const foodRadius = food.userData.radius || 0.3;
+
+                    if (food.userData.isInsect) {
+                        food.userData.flightTimer += subDelta;
+                        const wingSpeed = 40.0;
+                        if (food.userData.leftWing && food.userData.rightWing) {
+                            food.userData.leftWing.rotation.z = Math.sin(food.userData.flightTimer * wingSpeed) * 0.8;
+                            food.userData.rightWing.rotation.z = -Math.sin(food.userData.flightTimer * wingSpeed) * 0.8;
+                        }
+
+                        if (Math.random() < 0.05) {
+                            food.userData.velocity.x += (Math.random() - 0.5) * 3;
+                            food.userData.velocity.z += (Math.random() - 0.5) * 3;
+                            food.userData.velocity.y += (Math.random() - 0.5) * 2;
+                        }
+
+                        food.userData.velocity.y += (Math.sin(food.userData.flightTimer * 3) * 15) * subDelta;
+                    }
+
+                    food.userData.velocity.y -= gravity * subDelta;
+                    food.userData.velocity.x *= Math.pow(airDrag * dragMultiplier, subDelta / 0.016);
+                    food.userData.velocity.z *= Math.pow(airDrag * dragMultiplier, subDelta / 0.016);
+
+                    food.position.addScaledVector(food.userData.velocity, subDelta);
+
+                    if (!food.userData.isInsect && food.userData.velocity.length() > 0.1) {
+                        food.rotation.x += subDelta * 2;
+                        food.rotation.y += subDelta * 2;
+                    } else if (food.userData.isInsect && food.userData.velocity.lengthSq() > 0.01) {
+                        const lookDir = food.userData.velocity.clone().normalize();
+                        food.lookAt(food.position.clone().add(lookDir));
+                    }
+
+                    const groundH = getTerrainHeight(food.position.x, food.position.z);
+                    const boxLimit = (boxSize / 2) - 0.5;
+
+                    const isFoodInWater = groundH < waterLevel && food.position.y <= waterLevel + foodRadius;
+                    if (isFoodInWater && !food.userData.wasInWater && Math.abs(food.userData.velocity.y) > 1 && step === 0) {
+                        triggerSplash(food.position);
+                    }
+                    food.userData.wasInWater = isFoodInWater;
+
+                    const minAllowedY = groundH + foodRadius;
+                    if (food.position.y < minAllowedY) {
+                        food.position.y = minAllowedY;
+                        if (food.userData.isInsect) {
+                            if (Math.random() < 0.03) {
+                                food.userData.velocity.y = 8 + Math.random() * 5;
+                                food.userData.velocity.x += (Math.random() - 0.5) * 6;
+                                food.userData.velocity.z += (Math.random() - 0.5) * 6;
+                            } else {
+                                food.userData.velocity.y = 0;
+                                food.userData.velocity.x *= 0.8;
+                                food.userData.velocity.z *= 0.8;
+                            }
+                        } else {
+                            food.userData.velocity.y = -food.userData.velocity.y * 0.15;
+                            food.userData.velocity.x *= 0.75;
+                            food.userData.velocity.z *= 0.75;
+                            if (Math.abs(food.userData.velocity.y) < 0.2) {
+                                food.userData.velocity.y = 0;
+                            }
+                        }
+                    }
+
+                    if (food.position.x > boxLimit) {
+                        food.position.x = boxLimit;
+                        food.userData.velocity.x *= -bounceFactor;
+                    } else if (food.position.x < -boxLimit) {
+                        food.position.x = -boxLimit;
+                        food.userData.velocity.x *= -bounceFactor;
+                    }
+                    if (food.position.z > boxLimit) {
+                        food.position.z = boxLimit;
+                        food.userData.velocity.z *= -bounceFactor;
+                    } else if (food.position.z < -boxLimit) {
+                        food.position.z = -boxLimit;
+                        food.userData.velocity.z *= -bounceFactor;
+                    }
+                });
+            }
+
+            const horizontalSpeed = Math.sqrt(ballVelocity.x * ballVelocity.x + ballVelocity.z * ballVelocity.z);
+            if (horizontalSpeed > 0.05) {
+                const rotAxis = new THREE.Vector3(-ballVelocity.z, 0, ballVelocity.x).normalize();
+                const angularDist = (horizontalSpeed * delta) / ballRadius;
+                ball.rotateOnWorldAxis(rotAxis, angularDist);
+            }
+
+            if (!isEating && !isShootingWeb && spiderHungryLevel < 10 && foodGroup.children.length > 0) {
+                let closestFood = null;
+                let minDist = Infinity;
+
+                foodGroup.children.forEach(food => {
+                    const dist = spiderGroup.position.distanceTo(food.position);
+                    if (dist < minDist) {
+                        minDist = dist;
+                        closestFood = food;
+                    }
+                });
+
+                if (closestFood) {
+                    const useWebShooting = Math.random() < 0.2 && webShootCooldown <= 0;
+
+                    if (useWebShooting && minDist <= 16.0) {
+                        webTargetFood = closestFood;
+                        isShootingWeb = true;
+                        webState = 'shooting';
+                        webShootCooldown = 6.0;
+                        isJumping = false;
+                        isFrontLegDancing = false;
+                        isRandomWebShot = false;
+
+                        const spiderMouthPos = spiderGroup.position.clone().add(new THREE.Vector3(0, 1.0, 0));
+                        webProjectilePos.copy(spiderMouthPos);
+                        const toTarget = new THREE.Vector3().subVectors(webTargetFood.position, spiderMouthPos);
+                        const distance = toTarget.length();
+                        toTarget.normalize();
+                        webProjectileVel.copy(toTarget).multiplyScalar(Math.min(10 + distance * 0.2, 16));
+                        webProjectileVel.y = 2 + distance * 0.1;
+
+                        if (!webProjectileMesh) {
+                            webProjectileMesh = new THREE.Mesh(webProjGeo, webProjMat);
+                            scene.add(webProjectileMesh);
+                        }
+                        webProjectileMesh.position.copy(webProjectilePos);
+                        webProjectileMesh.visible = true;
+                    } else {
+                        targetFoodPiece = closestFood;
+                        targetPosition.set(targetFoodPiece.position.x, 0, targetFoodPiece.position.z);
+                        spiderSpeed = 0.07;
+
+                        if (minDist <= 1.8) {
+                            isEating = true;
+                            eatingTimer = 1.5;
+                            foodBeingEaten = targetFoodPiece;
+                            targetFoodPiece = null;
+                            playSpiderKickSound();
+                        }
+                    }
                 }
             }
 
-            if (targetingBall && !isHoldingBall && grabbedObject !== 'ball' && !isFrontLegDancing) {
+            // ---- RANDOM WEB SHOOT TRIGGER (idle play behaviour) ----
+            if (!isEating && !isShootingWeb && !isFrontLegDancing && webShootCooldown <= 0 && Math.random() < 0.0015) {
+                webShootCooldown = 8.0;
+                isShootingWeb = true;
+                webState = 'shooting';
+                isJumping = false;
+                isRandomWebShot = true;
+                webTargetFood = null;
+
+                // Pick a random target point inside the enclosure
+                const limit = (boxSize / 2) - 2;
+                const randomTargetPos = new THREE.Vector3(
+                    (Math.random() - 0.5) * limit * 2,
+                    Math.random() * (boxSize - 5) + 2,
+                    (Math.random() - 0.5) * limit * 2
+                );
+                webTargetPos.copy(randomTargetPos);
+
+                // Face the target direction
+                const dirToTarget = new THREE.Vector3().subVectors(webTargetPos, spiderGroup.position);
+                dirToTarget.y = 0;
+                if (dirToTarget.lengthSq() > 0.001) {
+                    const targetRot = Math.atan2(dirToTarget.x, dirToTarget.z);
+                    spiderGroup.rotation.y = targetRot;
+                }
+
+                const spiderMouthPos = spiderGroup.position.clone().add(new THREE.Vector3(0, 1.0, 0));
+                webProjectilePos.copy(spiderMouthPos);
+
+                const toTarget = new THREE.Vector3().subVectors(webTargetPos, spiderMouthPos);
+                const distance = toTarget.length();
+                toTarget.normalize();
+                webProjectileVel.copy(toTarget).multiplyScalar(Math.min(10 + distance * 0.2, 16));
+                webProjectileVel.y = 2 + distance * 0.1;
+
+                if (!webProjectileMesh) {
+                    webProjectileMesh = new THREE.Mesh(webProjGeo, webProjMat);
+                    scene.add(webProjectileMesh);
+                }
+                webProjectileMesh.position.copy(webProjectilePos);
+                webProjectileMesh.visible = true;
+            }
+            // ---------------------------------------------
+
+            if ((targetingBall || isChasingBall) && !isHoldingBall && grabbedObject !== 'ball' && !isFrontLegDancing && !isShootingWeb && (foodGroup.children.length === 0 || spiderHungryLevel >= 10)) {
                 targetPosition.set(ball.position.x, 0, ball.position.z);
             }
 
             const toTarget = new THREE.Vector3().subVectors(targetPosition, spiderGroup.position);
             toTarget.y = 0;
             const distanceToTarget = toTarget.length();
-            const isMoving = distanceToTarget >= 1.0 && !isFrontLegDancing;
+            const isMoving = !isEating && !isShootingWeb && distanceToTarget >= 1.0 && !isFrontLegDancing;
 
-            if (!isMoving && !isJumping && !isFrontLegDancing && !(activeTool === 'finger' && trackingCursor)) {
-                if (Math.random() < 0.02) pickNewTarget();
+            if (!isMoving && !isJumping && !isFrontLegDancing && !isEating && !isShootingWeb && !(activeTool === 'finger' && trackingCursor) && (foodGroup.children.length === 0 || spiderHungryLevel >= 10)) {
+                if (!isChasingBall && Math.random() < 0.02) pickNewTarget();
             }
 
-            if (grabbedObject === 'spider') {
+            if (isShootingWeb) {
+                walkCycle = 0;
+
+                // ==== ADDED: Force spider to stand on ground ====
+                const currentGroundY = getTerrainHeight(spiderGroup.position.x, spiderGroup.position.z);
+                spiderGroup.position.y = currentGroundY; // no walking bob, just flat on ground
+                // ==============================================
+
+                const spiderMouthPos = spiderGroup.position.clone().add(new THREE.Vector3(0, 1.0, 0));
+
+                // For random web shots we don't need a food target, but we still need to check if we should cancel
+                // If it's a random shot, keep going; otherwise validate the food target.
+                if (!isRandomWebShot && (!webTargetFood || !foodGroup.children.includes(webTargetFood))) {
+                    isShootingWeb = false;
+                    webState = 'idle';
+                    webTargetFood = null;
+                    if (webLineMesh) {
+                        scene.remove(webLineMesh);
+                        webLineMesh.geometry.dispose();
+                        webLineMesh = null;
+                    }
+                    if (webProjectileMesh) webProjectileMesh.visible = false;
+                    isRandomWebShot = false;
+                } else {
+                    // Face the target (food or random point)
+                    if (!isRandomWebShot && webTargetFood) {
+                        const dirToFood = new THREE.Vector3().subVectors(webTargetFood.position, spiderGroup.position);
+                        dirToFood.y = 0;
+                        const targetRot = Math.atan2(dirToFood.x, dirToFood.z);
+                        spiderGroup.rotation.y = THREE.MathUtils.lerp(spiderGroup.rotation.y, targetRot, 0.2);
+                    } else if (isRandomWebShot) {
+                        const dirToTarget = new THREE.Vector3().subVectors(webTargetPos, spiderGroup.position);
+                        dirToTarget.y = 0;
+                        const targetRot = Math.atan2(dirToTarget.x, dirToTarget.z);
+                        spiderGroup.rotation.y = THREE.MathUtils.lerp(spiderGroup.rotation.y, targetRot, 0.2);
+                    }
+
+                    if (webState === 'shooting') {
+                        webProjectileVel.y -= (gravity * 0.35) * delta;
+                        webProjectilePos.addScaledVector(webProjectileVel, delta);
+
+                        if (webProjectileMesh) {
+                            webProjectileMesh.position.copy(webProjectilePos);
+                            webProjectileMesh.visible = true;
+                            webProjectileMesh.lookAt(camera.position);
+                            webProjectileMesh.rotateZ(elapsedTime * 5);
+                        }
+
+                        const groundH = getTerrainHeight(webProjectilePos.x, webProjectilePos.z);
+                        const boxLimit = boxSize / 2;
+                        const innerLimit = boxLimit - 0.01;
+
+                        let hitDetected = false;
+                        let hitPosition = new THREE.Vector3().copy(webProjectilePos);
+                        let surfaceNormal = new THREE.Vector3(0, 1, 0);
+
+                        // Floor collision with terrain height
+                        if (webProjectilePos.y <= groundH + 0.05) {
+                            hitPosition.x = THREE.MathUtils.clamp(webProjectilePos.x, -innerLimit, innerLimit);
+                            hitPosition.z = THREE.MathUtils.clamp(webProjectilePos.z, -innerLimit, innerLimit);
+                            hitPosition.y = getTerrainHeight(hitPosition.x, hitPosition.z) + 0.02;
+                            surfaceNormal = getTerrainNormal(hitPosition.x, hitPosition.z);
+                            hitDetected = true;
+                        } else if (webProjectilePos.y >= boxSize - 0.05) {
+                            hitPosition.x = THREE.MathUtils.clamp(webProjectilePos.x, -innerLimit, innerLimit);
+                            hitPosition.z = THREE.MathUtils.clamp(webProjectilePos.z, -innerLimit, innerLimit);
+                            hitPosition.y = boxSize - 0.02;
+                            surfaceNormal.set(0, -1, 0);
+                            hitDetected = true;
+                        } else if (Math.abs(webProjectilePos.x) >= innerLimit) {
+                            hitPosition.x = Math.sign(webProjectilePos.x) * innerLimit;
+                            hitPosition.y = THREE.MathUtils.clamp(webProjectilePos.y, 0.02, boxSize - 0.02);
+                            hitPosition.z = THREE.MathUtils.clamp(webProjectilePos.z, -innerLimit, innerLimit);
+                            surfaceNormal.set(-Math.sign(webProjectilePos.x), 0, 0);
+                            hitDetected = true;
+                        } else if (Math.abs(webProjectilePos.z) >= innerLimit) {
+                            hitPosition.z = Math.sign(webProjectilePos.z) * innerLimit;
+                            hitPosition.y = THREE.MathUtils.clamp(webProjectilePos.y, 0.02, boxSize - 0.02);
+                            hitPosition.x = THREE.MathUtils.clamp(webProjectilePos.x, -innerLimit, innerLimit);
+                            surfaceNormal.set(0, 0, -Math.sign(webProjectilePos.z));
+                            hitDetected = true;
+                        }
+
+                        if (hitDetected) {
+                            const landedWeb = new THREE.Mesh(webProjGeo, webProjMat.clone());
+                            landedWeb.position.copy(hitPosition);
+
+                            const targetOrientation = new THREE.Matrix4();
+                            const fakeUp = Math.abs(surfaceNormal.y) > 0.9 ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(0, 1, 0);
+                            targetOrientation.lookAt(hitPosition, hitPosition.clone().add(surfaceNormal), fakeUp);
+                            landedWeb.quaternion.setFromRotationMatrix(targetOrientation);
+
+                            landedWeb.userData = { isLandedWeb: true, health: 1.0 };
+                            scene.add(landedWeb);
+                            landedWebs.push(landedWeb);
+
+                            if (activeTool === 'brush') {
+                                addHighlightToObject(landedWeb);
+                            }
+
+                            if (webProjectileMesh) webProjectileMesh.visible = false;
+
+                            isShootingWeb = false;
+                            webState = 'idle';
+                            webTargetFood = null;
+                            isRandomWebShot = false;
+
+                            if (webLineMesh) {
+                                scene.remove(webLineMesh);
+                                webLineMesh.geometry.dispose();
+                                webLineMesh = null;
+                            }
+                        } else if (webProjectilePos.distanceTo(spiderMouthPos) > 30) {
+                            isShootingWeb = false;
+                            webState = 'idle';
+                            webTargetFood = null;
+                            isRandomWebShot = false;
+                            if (webLineMesh) {
+                                scene.remove(webLineMesh);
+                                webLineMesh.geometry.dispose();
+                                webLineMesh = null;
+                            }
+                            if (webProjectileMesh) webProjectileMesh.visible = false;
+                        }
+
+                        if (webState === 'shooting') {
+                            const points = [spiderMouthPos, webProjectilePos];
+                            const webGeo = new THREE.BufferGeometry().setFromPoints(points);
+                            if (!webLineMesh) {
+                                webLineMesh = new THREE.Line(webGeo, webLineMaterial);
+                                scene.add(webLineMesh);
+                            } else {
+                                webLineMesh.geometry.dispose();
+                                webLineMesh.geometry = webGeo;
+                            }
+                        }
+                    } else if (webState === 'pulling') {
+                        if (webProjectileMesh) webProjectileMesh.visible = false;
+
+                        webTargetFood.position.lerp(spiderMouthPos, delta * 4.0);
+                        if (webTargetFood.userData && webTargetFood.userData.velocity) {
+                            webTargetFood.userData.velocity.set(0, 0, 0);
+                        }
+
+                        const points = [spiderMouthPos, webTargetFood.position];
+                        const webGeo = new THREE.BufferGeometry().setFromPoints(points);
+                        if (!webLineMesh) {
+                            webLineMesh = new THREE.Line(webGeo, webLineMaterial);
+                            scene.add(webLineMesh);
+                        } else {
+                            webLineMesh.geometry.dispose();
+                            webLineMesh.geometry = webGeo;
+                        }
+
+                        if (spiderMouthPos.distanceTo(webTargetFood.position) < 1.5) {
+                            isShootingWeb = false;
+                            webState = 'idle';
+                            if (webLineMesh) {
+                                scene.remove(webLineMesh);
+                                webLineMesh.geometry.dispose();
+                                webLineMesh = null;
+                            }
+                            if (webProjectileMesh) webProjectileMesh.visible = false;
+
+                            isEating = true;
+                            eatingTimer = 1.5;
+                            foodBeingEaten = webTargetFood;
+                            webTargetFood = null;
+                            isRandomWebShot = false;
+                            playSpiderKickSound();
+                        }
+                    }
+                }
+            } else if (isEating) {
+                eatingTimer -= delta;
+                walkCycle = 0;
+
+                const chewPhase = eatingTimer * 15;
+                spiderBodyContainer.position.y = Math.abs(Math.sin(chewPhase)) * 0.15;
+                leftPedipalp.rotation.z = Math.sin(chewPhase * 2) * 0.2;
+                rightPedipalp.rotation.z = -Math.sin(chewPhase * 2) * 0.2;
+
+                if (Math.random() < 0.2) {
+                    spawnEmotionParticle();
+                }
+
+                if (foodBeingEaten && foodGroup.children.includes(foodBeingEaten)) {
+                    foodBeingEaten.scale.multiplyScalar(0.96);
+                }
+
+                if (eatingTimer <= 0) {
+                    isEating = false;
+                    spiderBodyContainer.position.y = 0;
+
+                    if (foodBeingEaten && foodGroup.children.includes(foodBeingEaten)) {
+                        const isInsect = foodBeingEaten.userData && foodBeingEaten.userData.isInsect;
+                        const recoveryAmount = isInsect ? 3 : 1;
+
+                        createFoodPopup(spiderGroup.position, recoveryAmount);
+
+                        removeHighlightFromObject(foodBeingEaten);
+                        foodGroup.remove(foodBeingEaten);
+                        if (foodBeingEaten === activeInsect) {
+                            activeInsect = null;
+                        }
+                        foodBeingEaten = null;
+
+                        spiderHungryLevel = Math.min(10, spiderHungryLevel + recoveryAmount);
+                        hungerTimerSeconds = 15;
+                        updateSpiderHungerDisplay();
+                    }
+                    pickNewTarget();
+                }
+            } else if (grabbedObject === 'spider') {
                 spiderLegs.forEach((leg) => {
                     leg.femurPivot.rotation.x = leg.baseFemurX + 0.3;
                     leg.tibiaPivot.rotation.x = leg.baseTibiaX + 0.4;
                 });
             } else if (isJumping) {
-                jumpProgress += delta * 1.5;
+                jumpProgress += delta * 1.0;
                 if (jumpProgress > 1) jumpProgress = 1;
 
                 const jumpDir = new THREE.Vector3().subVectors(targetPosition, startJumpPos);
@@ -1337,20 +2647,12 @@
                 spiderGroup.position.lerpVectors(startJumpPos, targetPosition, jumpProgress);
 
                 const targetGroundY = getTerrainHeight(spiderGroup.position.x, spiderGroup.position.z);
-                const jumpHeight = 4;
+                const jumpHeight = 3.0;
                 spiderGroup.position.y = targetGroundY + Math.sin(jumpProgress * Math.PI) * jumpHeight;
 
                 spiderLegs.forEach((leg) => {
-                    leg.femurPivot.rotation.x = THREE.MathUtils.lerp(
-                        leg.femurPivot.rotation.x,
-                        leg.baseFemurX - 0.5,
-                        0.1
-                    );
-                    leg.tibiaPivot.rotation.x = THREE.MathUtils.lerp(
-                        leg.tibiaPivot.rotation.x,
-                        leg.baseTibiaX + 0.6,
-                        0.1
-                    );
+                    leg.femurPivot.rotation.x = THREE.MathUtils.lerp(leg.femurPivot.rotation.x, leg.baseFemurX - 0.5, 0.1);
+                    leg.tibiaPivot.rotation.x = THREE.MathUtils.lerp(leg.tibiaPivot.rotation.x, leg.baseTibiaX + 0.6, 0.1);
                 });
 
                 if (jumpProgress === 1) {
@@ -1377,7 +2679,7 @@
                     walkCycle += delta * (spiderSpeed * 200);
                 } else {
                     walkCycle = 0;
-                    if (!isFrontLegDancing) {
+                    if (!isFrontLegDancing && !isChasingBall) {
                         idleTime += delta;
                         if (idleTime > 2.0 && Math.random() < 0.005) {
                             isFrontLegDancing = true;
@@ -1497,7 +2799,6 @@
                 }
             }
 
-            // ===== Camera Update Logic =====
             if (cameraMode === 'follow') {
                 const targetCamTarget = spiderGroup.position.clone().add(new THREE.Vector3(0, 1, 0));
                 controls.target.lerp(targetCamTarget, 0.1);
