@@ -643,7 +643,7 @@
         let ballWasInWater = false;
 
         let activeInsect = null;
-        let spiderHungryLevel = 5;
+        let spiderHungryLevel = 1;
         let hungerTimerSeconds = 10;
         const foodGroup = new THREE.Group();
         scene.add(foodGroup);
@@ -958,11 +958,23 @@
             rightWing.position.set(-0.35, 0.15, 0.0);
             insectGroup.add(rightWing);
 
-            insectGroup.position.set(pos.x, 3, pos.z);
+            // 随机初始高度 1.5 ~ 6.0，让昆虫一开始就分布在不同高度
+            const startY = 1.5 + Math.random() * 4.5;
+            insectGroup.position.set(pos.x, startY, pos.z);
             insectGroup.castShadow = true;
 
+            // ===== 增强的随机状态 =====
+            const speedBase = 1.5 + Math.random() * 3.0;          // 基础速度 1.5~4.5
+            const angle = Math.random() * Math.PI * 2;
+            const speedH = speedBase * (0.5 + Math.random() * 0.5);
+
             insectGroup.userData = {
-                velocity: new THREE.Vector3((Math.random() - 0.5) * 4, 3, (Math.random() - 0.5) * 4),
+                // 速度向量：水平方向随机，垂直初始随机
+                velocity: new THREE.Vector3(
+                    Math.cos(angle) * speedH,
+                    (Math.random() - 0.5) * 2.0 + 1.0,
+                    Math.sin(angle) * speedH
+                ),
                 radius: 0.4,
                 isInsect: true,
                 wasInWater: false,
@@ -970,7 +982,22 @@
                 leftWing: leftWing,
                 rightWing: rightWing,
                 flightTimer: 0,
-                state: 'flying'
+                state: 'flying',
+
+                // ---- 新增随机飞行参数 ----
+                targetHeight: 1.0 + Math.random() * 5.0,          // 目标高度 1~6
+                heightChangeTimer: 0.5 + Math.random() * 2.0,     // 多久改变目标高度
+                turnTimer: 0.3 + Math.random() * 0.8,             // 多久改变方向
+                speedBase: speedBase,
+                speedVariation: 0.6 + Math.random() * 0.8,        // 速度变化幅度
+                turnSpeed: 1.2 + Math.random() * 2.0,             // 转向速度
+                verticalBias: (Math.random() - 0.5) * 2.0,        // 垂直偏好 (-1~1)
+                // 用于平滑转向的目标方向
+                targetDir: new THREE.Vector3(
+                    Math.cos(angle + (Math.random() - 0.5) * 0.5),
+                    0,
+                    Math.sin(angle + (Math.random() - 0.5) * 0.5)
+                ).normalize()
             };
 
             foodGroup.add(insectGroup);
@@ -1848,7 +1875,8 @@
                         webTargetFood = rootFood;
                         isShootingWeb = true;
                         webState = 'shooting';
-                        webShootCooldown = 6.0;
+                        // ★ 生气时冷却 1 秒，否则 6 秒 ★
+                        webShootCooldown = spiderEmotion === 'annoyed' ? 1.0 : 6.0;
                         isJumping = false;
                         isFrontLegDancing = false;
                         trackingCursor = false;
@@ -1866,6 +1894,11 @@
                             webProjectileMesh = new THREE.Mesh(webProjGeo, webProjMat);
                             scene.add(webProjectileMesh);
                         }
+
+                        const randomWebScale = 0.5 + Math.random() * 1.5;
+                        webProjectileMesh.scale.set(randomWebScale, randomWebScale, randomWebScale);
+                        webProjectileMesh.userData.currentScale = randomWebScale;
+
                         webProjectileMesh.position.copy(webProjectilePos);
                         webProjectileMesh.visible = true;
                     } else {
@@ -2323,7 +2356,8 @@
                         webTargetFood = closestFood;
                         isShootingWeb = true;
                         webState = 'shooting';
-                        webShootCooldown = 6.0;
+                        // ★ 生气时冷却 1 秒，否则 6 秒 ★
+                        webShootCooldown = spiderEmotion === 'annoyed' ? 1.0 : 6.0;
                         isJumping = false;
                         isFrontLegDancing = false;
                         isRandomWebShot = false;
@@ -2340,6 +2374,11 @@
                             webProjectileMesh = new THREE.Mesh(webProjGeo, webProjMat);
                             scene.add(webProjectileMesh);
                         }
+
+                        const randomWebScale = 0.5 + Math.random() * 1.5;
+                        webProjectileMesh.scale.set(randomWebScale, randomWebScale, randomWebScale);
+                        webProjectileMesh.userData.currentScale = randomWebScale;
+
                         webProjectileMesh.position.copy(webProjectilePos);
                         webProjectileMesh.visible = true;
                     } else {
@@ -2360,7 +2399,8 @@
 
             // ---- RANDOM WEB SHOOT TRIGGER (idle play behaviour) ----
             if (!isEating && !isShootingWeb && !isFrontLegDancing && webShootCooldown <= 0 && Math.random() < 0.0015) {
-                webShootCooldown = 8.0;
+                // ★ 生气时冷却 1 秒，否则 8 秒 ★
+                webShootCooldown = spiderEmotion === 'annoyed' ? 1.0 : 8.0;
                 isShootingWeb = true;
                 webState = 'shooting';
                 isJumping = false;
@@ -2420,13 +2460,11 @@
 
                 // ==== ADDED: Force spider to stand on ground ====
                 const currentGroundY = getTerrainHeight(spiderGroup.position.x, spiderGroup.position.z);
-                spiderGroup.position.y = currentGroundY; // no walking bob, just flat on ground
+                spiderGroup.position.y = currentGroundY;
                 // ==============================================
 
                 const spiderMouthPos = spiderGroup.position.clone().add(new THREE.Vector3(0, 1.0, 0));
 
-                // For random web shots we don't need a food target, but we still need to check if we should cancel
-                // If it's a random shot, keep going; otherwise validate the food target.
                 if (!isRandomWebShot && (!webTargetFood || !foodGroup.children.includes(webTargetFood))) {
                     isShootingWeb = false;
                     webState = 'idle';
@@ -2439,7 +2477,6 @@
                     if (webProjectileMesh) webProjectileMesh.visible = false;
                     isRandomWebShot = false;
                 } else {
-                    // Face the target (food or random point)
                     if (!isRandomWebShot && webTargetFood) {
                         const dirToFood = new THREE.Vector3().subVectors(webTargetFood.position, spiderGroup.position);
                         dirToFood.y = 0;
@@ -2463,6 +2500,21 @@
                             webProjectileMesh.rotateZ(elapsedTime * 5);
                         }
 
+                        // ========== 🔥 新增：食物碰撞检测 ==========
+                        if (!isRandomWebShot && webTargetFood && foodGroup.children.includes(webTargetFood)) {
+                            const distToFood = webProjectilePos.distanceTo(webTargetFood.position);
+                            // 阈值 1.5 可以适当调整（食物大小不同）
+                            if (distToFood < 1.5) {
+                                // 击中食物 → 进入拉取状态
+                                webState = 'pulling';
+                                if (webProjectileMesh) {
+                                    webProjectileMesh.visible = false;
+                                }
+                                // 注意：不要设置 isShootingWeb = false，pulling 阶段仍需继续
+                            }
+                        }
+                        // ========================================
+
                         const groundH = getTerrainHeight(webProjectilePos.x, webProjectilePos.z);
                         const boxLimit = boxSize / 2;
                         const innerLimit = boxLimit - 0.01;
@@ -2471,7 +2523,6 @@
                         let hitPosition = new THREE.Vector3().copy(webProjectilePos);
                         let surfaceNormal = new THREE.Vector3(0, 1, 0);
 
-                        // Floor collision with terrain height
                         if (webProjectilePos.y <= groundH + 0.05) {
                             hitPosition.x = THREE.MathUtils.clamp(webProjectilePos.x, -innerLimit, innerLimit);
                             hitPosition.z = THREE.MathUtils.clamp(webProjectilePos.z, -innerLimit, innerLimit);
@@ -2501,6 +2552,9 @@
                         if (hitDetected) {
                             const landedWeb = new THREE.Mesh(webProjGeo, webProjMat.clone());
                             landedWeb.position.copy(hitPosition);
+
+                            const webScale = webProjectileMesh.userData.currentScale || 1.0;
+                            landedWeb.scale.set(webScale, webScale, webScale);
 
                             const targetOrientation = new THREE.Matrix4();
                             const fakeUp = Math.abs(surfaceNormal.y) > 0.9 ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(0, 1, 0);
@@ -2554,7 +2608,7 @@
                     } else if (webState === 'pulling') {
                         if (webProjectileMesh) webProjectileMesh.visible = false;
 
-                        webTargetFood.position.lerp(spiderMouthPos, delta * 4.0);
+                        webTargetFood.position.lerp(spiderMouthPos, delta * 8.0);
                         if (webTargetFood.userData && webTargetFood.userData.velocity) {
                             webTargetFood.userData.velocity.set(0, 0, 0);
                         }
